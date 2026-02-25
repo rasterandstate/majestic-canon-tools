@@ -24,6 +24,7 @@
     "generate-test-keys": "tsx scripts/generate-test-keys.ts",
     "validate": "tsx scripts/validate.ts",
     "migrate:edition-region": "tsx scripts/migrate-edition-region-to-discs.ts",
+    "generate:identity-redirects": "tsx scripts/generate-identity-redirects.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

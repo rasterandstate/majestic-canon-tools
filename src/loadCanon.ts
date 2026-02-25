@@ -24,3 +24,20 @@ export function getCanonPath(): string {
   const defaultPath = join(process.cwd(), '..', 'majestic-canon');
   return defaultPath;
 }
+
+export interface CanonRegions {
+  canonical: string[];
+  mappings: Record<string, string>;
+}
+
+export function loadRegions(canonPath: string): CanonRegions {
+  const regionsPath = join(canonPath, 'schema', 'regions.json');
+  if (!existsSync(regionsPath)) {
+    return { canonical: [], mappings: {} };
+  }
+  const raw = JSON.parse(readFileSync(regionsPath, 'utf-8')) as CanonRegions;
+  return {
+    canonical: raw.canonical ?? [],
+    mappings: raw.mappings ?? {},
+  };
+}
