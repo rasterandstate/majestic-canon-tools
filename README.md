@@ -36,6 +36,11 @@ Separation is institutional maturity. Build ≠ Sign.
 
 Apache License 2.0. See [LICENSE](./LICENSE).
 
+## Specs (freeze before pack generation)
+
+- **[PACK_FORMAT.md](./PACK_FORMAT.md)** — Distribution artifact format, manifest, signature scope
+- **[SIGNING_FLOW.md](./SIGNING_FLOW.md)** — Build → sign → publish flow; key isolation
+
 ## Dependencies
 
 - **majestic-canon**: Source data (read-only during build)
