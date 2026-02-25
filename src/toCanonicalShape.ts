@@ -9,7 +9,7 @@ type UnknownRecord = Record<string, unknown>;
 function cleanExternalRef(ref: unknown): UnknownRecord | null {
   if (ref == null || typeof ref !== 'object') return null;
   const r = ref as UnknownRecord;
-  const source = String(r.source ?? '').trim();
+  const source = String(r.source ?? '').trim().toLowerCase();
   const id = String(r.id ?? '').trim();
   if (!source || !id) return null;
   const out: UnknownRecord = { source, id };

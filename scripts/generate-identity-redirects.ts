@@ -13,7 +13,11 @@ import { join } from 'path';
 import { execSync } from 'child_process';
 import { toCanonicalShape } from '../src/toCanonicalShape.js';
 import { getCanonPath, loadRegions } from '../src/loadCanon.js';
-import { computeEditionIdentityHash, computeEditionIdentityHashV1 } from '../src/editionIdentity.js';
+import {
+  computeEditionIdentityHash,
+  computeEditionIdentityHashV1,
+  computeEditionIdentityHashV2,
+} from '../src/editionIdentity.js';
 
 function migrateEdition(edition: Record<string, unknown>): Record<string, unknown> {
   const region = edition.region;
@@ -62,6 +66,41 @@ async function run(): Promise<void> {
   const files = readdirSync(editionsDir).filter((f) => f.endsWith('.json')).sort();
   const redirects: Record<string, string> = {};
 
+  // Load existing redirects (e.g. v1->v3) to merge
+  const redirectPath = join(canonPath, 'identity_redirects.json');
+  if (existsSync(redirectPath)) {
+    try {
+      Object.assign(redirects, JSON.parse(readFileSync(redirectPath, 'utf-8')));
+    } catch {
+      // ignore
+    }
+  }
+
+  // v2->v3: from current disk (UPC added to identity)
+  for (const file of files) {
+    const filePath = join(editionsDir, file);
+    let content: string;
+    try {
+      content = readFileSync(filePath, 'utf-8');
+    } catch {
+      continue;
+    }
+    let items: unknown[];
+    try {
+      items = JSON.parse(content) as unknown[];
+      if (!Array.isArray(items)) items = [items];
+    } catch {
+      continue;
+    }
+    for (const item of items) {
+      const canonical = toCanonicalShape(item);
+      const v2 = computeEditionIdentityHashV2(canonical, mappings);
+      const v3 = computeEditionIdentityHash(canonical, mappings);
+      if (v2 !== v3) redirects[v2] = v3;
+    }
+  }
+
+  // v1->v3: from git (edition.region migration)
   for (const file of files) {
     const gitPath = `editions/${file}`;
     const content = getFromGit(canonPath, ref, gitPath);
@@ -82,14 +121,21 @@ async function run(): Promise<void> {
       const v1 = computeEditionIdentityHashV1(rec, mappings);
       const migrated = migrateEdition(rec);
       const canonical = toCanonicalShape(migrated);
-      const v2 = computeEditionIdentityHash(canonical, mappings);
-      redirects[v1] = v2;
+      const v3 = computeEditionIdentityHash(canonical, mappings);
+      redirects[v1] = v3;
     }
   }
 
-  const redirectPath = join(canonPath, 'identity_redirects.json');
-  writeFileSync(redirectPath, JSON.stringify(redirects, null, 2) + '\n', 'utf-8');
-  console.log(`Wrote ${redirectPath} (${Object.keys(redirects).length} redirects from ${ref})`);
+  // Flatten: resolve chains so all old IDs point to current (v3)
+  const flattened: Record<string, string> = {};
+  for (const [oldId, newId] of Object.entries(redirects)) {
+    let target = newId;
+    while (redirects[target]) target = redirects[target];
+    flattened[oldId] = target;
+  }
+
+  writeFileSync(redirectPath, JSON.stringify(flattened, null, 2) + '\n', 'utf-8');
+  console.log(`Wrote ${redirectPath} (${Object.keys(flattened).length} redirects)`);
 }
 
 run().catch((e) => {
