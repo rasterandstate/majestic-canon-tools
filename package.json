@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsx scripts/build.ts",
+    "verify": "tsx scripts/verify.ts",
     "validate": "tsx scripts/validate.ts",
     "test": "vitest run",
     "test:watch": "vitest"

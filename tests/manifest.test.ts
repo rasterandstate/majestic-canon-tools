@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { build } from '../src/build.js';
+import { verifyManifest } from '../src/manifest.js';
 import { createHash } from 'crypto';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -46,6 +47,40 @@ describe('manifest integrity', () => {
     expect(m.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     expect(m.payload.files).toHaveLength(1);
     expect(m.payload.files[0].path).toBe('payload/canon.json');
+  });
+
+  it('verifyManifest passes for valid pack', () => {
+    const outDir = join(ROOT, 'out-manifest-test');
+    build({ canonPath: CANON_PATH, outDir });
+    const result = verifyManifest(outDir);
+    expect(result.ok).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('verifyManifest fails when manifest.json missing', () => {
+    const result = verifyManifest(join(ROOT, 'nonexistent-pack'));
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes('not found'))).toBe(true);
+  });
+
+  it('verifyManifest fails loudly on missing payload file', () => {
+    const outDir = join(ROOT, 'out-manifest-test');
+    build({ canonPath: CANON_PATH, outDir });
+    const canonPath = join(outDir, 'payload', 'canon.json');
+    unlinkSync(canonPath);
+    const result = verifyManifest(outDir);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes('missing'))).toBe(true);
+  });
+
+  it('verifyManifest fails loudly on hash mismatch', () => {
+    const outDir = join(ROOT, 'out-manifest-test');
+    build({ canonPath: CANON_PATH, outDir });
+    const canonPath = join(outDir, 'payload', 'canon.json');
+    writeFileSync(canonPath, 'corrupted', 'utf-8');
+    const result = verifyManifest(outDir);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes('hash mismatch'))).toBe(true);
   });
 
   it('rebuild produces same payload hash and canon_version (same commit)', () => {

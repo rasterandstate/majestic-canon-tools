@@ -1,9 +1,10 @@
 /**
  * Pack manifest per PACK_FORMAT.md. The signing target.
  */
+import { readFileSync, existsSync } from 'fs';
 import { spawnSync } from 'child_process';
-import { createHash } from 'crypto';
 import { join } from 'path';
+import { createHash } from 'crypto';
 import { canonicalStringify } from './canonicalJson.js';
 
 export interface ManifestPayloadFile {
@@ -79,4 +80,43 @@ export function buildManifest(
  */
 export function serializeManifest(manifest: PackManifest): string {
   return canonicalStringify(manifest);
+}
+
+export interface VerifyResult {
+  ok: boolean;
+  errors: string[];
+}
+
+/**
+ * Verify payload files match manifest. Same semantics canon-updater will use.
+ * packRoot: directory containing manifest.json (e.g. out/)
+ */
+export function verifyManifest(packRoot: string): VerifyResult {
+  const manifestPath = join(packRoot, 'manifest.json');
+  if (!existsSync(manifestPath)) {
+    return { ok: false, errors: [`manifest.json not found at ${manifestPath}`] };
+  }
+  const manifest: PackManifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+  const errors: string[] = [];
+
+  for (const file of manifest.payload.files) {
+    const filePath = join(packRoot, file.path);
+    if (!existsSync(filePath)) {
+      errors.push(`payload file missing: ${file.path}`);
+      continue;
+    }
+    const bytes = readFileSync(filePath);
+    const computed = createHash('sha256').update(bytes).digest('hex');
+    if (computed !== file.sha256) {
+      errors.push(`hash mismatch: ${file.path} (expected ${file.sha256}, got ${computed})`);
+    }
+    if (bytes.byteLength !== file.bytes) {
+      errors.push(`byte length mismatch: ${file.path} (expected ${file.bytes}, got ${bytes.byteLength})`);
+    }
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+  };
 }
