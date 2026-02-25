@@ -5,7 +5,7 @@
  * INVARIANTS:
  * - canon.json contains NO timestamps, builtAt, or build metadata.
  * - Arrays are explicitly sorted: publishers by publisher_id, regions.canonical alphabetically,
- *   editions by canonical string. Never rely on filesystem or object iteration order.
+ *   editions by canonical string, external_refs by source then id. Never rely on filesystem or object iteration order.
  * - Output is UTF-8, no trailing newline, platform-independent.
  */
 import { readFileSync, existsSync, readdirSync } from 'fs';
@@ -13,6 +13,25 @@ import { join } from 'path';
 import { createHash } from 'crypto';
 import { canonicalStringify } from './canonicalJson.js';
 import { loadCanonSchema, getCanonPath } from './loadCanon.js';
+
+/** Sort external_refs by source then id for deterministic payload (CANON_IDENTITY_SPEC). */
+function normalizeEdition(edition: unknown): unknown {
+  if (edition == null || typeof edition !== 'object') return edition;
+  const obj = { ...(edition as Record<string, unknown>) };
+  const refs = obj.external_refs;
+  if (Array.isArray(refs) && refs.length > 0) {
+    obj.external_refs = [...refs].sort((a, b) => {
+      const aSrc = String((a as Record<string, unknown>)?.source ?? '');
+      const bSrc = String((b as Record<string, unknown>)?.source ?? '');
+      const cmp = aSrc.localeCompare(bSrc);
+      if (cmp !== 0) return cmp;
+      const aId = String((a as Record<string, unknown>)?.id ?? '');
+      const bId = String((b as Record<string, unknown>)?.id ?? '');
+      return aId.localeCompare(bId);
+    });
+  }
+  return obj;
+}
 
 export interface BuildPayloadOptions {
   canonPath?: string;
@@ -52,17 +71,16 @@ export function buildCanonPayload(options: BuildPayloadOptions = {}): { payload:
     mappings: regionsRaw.mappings ?? {},
   };
 
-  // Load editions — sort by canonical string for deterministic order
+  // Load editions — normalize external_refs order, then sort by canonical string
   const editionsDir = join(canonPath, 'editions');
   const editionsRaw: unknown[] = [];
   if (existsSync(editionsDir)) {
     const files = readdirSync(editionsDir).filter((f) => f.endsWith('.json')).sort();
     for (const file of files) {
       const data = JSON.parse(readFileSync(join(editionsDir, file), 'utf-8'));
-      if (Array.isArray(data)) {
-        editionsRaw.push(...data);
-      } else {
-        editionsRaw.push(data);
+      const items = Array.isArray(data) ? data : [data];
+      for (const item of items) {
+        editionsRaw.push(normalizeEdition(item));
       }
     }
   }
