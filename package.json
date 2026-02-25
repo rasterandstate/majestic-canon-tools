@@ -11,7 +11,8 @@
     "./editionIdentity": "./src/editionIdentity.ts",
     "./buildCanonPayload": "./src/buildCanonPayload.ts",
     "./validate": "./src/validate.ts",
-    "./loadCanon": "./src/loadCanon.ts"
+    "./loadCanon": "./src/loadCanon.ts",
+    "./toCanonicalShape": "./src/toCanonicalShape.ts"
   },
   "bin": {
     "canon-build": "./scripts/build.ts"

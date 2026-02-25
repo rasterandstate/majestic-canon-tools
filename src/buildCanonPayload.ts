@@ -13,6 +13,7 @@ import { join } from 'path';
 import { createHash } from 'crypto';
 import { canonicalStringify } from './canonicalJson.js';
 import { loadCanonSchema, getCanonPath } from './loadCanon.js';
+import { toCanonicalShape } from './toCanonicalShape.js';
 
 /** Sort external_refs by source then id for deterministic payload (CANON_IDENTITY_SPEC). Exported for tests. */
 export function normalizeEdition(edition: unknown): unknown {
@@ -71,7 +72,7 @@ export function buildCanonPayload(options: BuildPayloadOptions = {}): { payload:
     mappings: regionsRaw.mappings ?? {},
   };
 
-  // Load editions — normalize external_refs order, then sort by canonical string
+  // Load editions — canonical shape (strip _sourceFile, title, empty notes), then sort
   const editionsDir = join(canonPath, 'editions');
   const editionsRaw: unknown[] = [];
   if (existsSync(editionsDir)) {
@@ -80,7 +81,7 @@ export function buildCanonPayload(options: BuildPayloadOptions = {}): { payload:
       const data = JSON.parse(readFileSync(join(editionsDir, file), 'utf-8'));
       const items = Array.isArray(data) ? data : [data];
       for (const item of items) {
-        editionsRaw.push(normalizeEdition(item));
+        editionsRaw.push(toCanonicalShape(normalizeEdition(item)));
       }
     }
   }

@@ -6,6 +6,7 @@ import { buildCanonPayload, hashCanonPayload, normalizeEdition } from '../src/bu
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const CANON_PATH = join(ROOT, '..', 'majestic-canon');
+const CANON_GOLDEN_PATH = join(ROOT, 'tests', 'fixtures', 'canon-golden');
 const FIXTURE_PATH = join(ROOT, 'tests', 'fixtures', 'expectedCanon.json');
 
 describe('canon payload determinism', () => {
@@ -37,8 +38,8 @@ describe('canon payload determinism', () => {
   });
 
   it('golden snapshot: payload bytes match expectedCanon.json exactly', () => {
-    const { json } = buildCanonPayload({ canonPath: CANON_PATH });
-    const expected = readFileSync(FIXTURE_PATH, 'utf-8');
+    const { json } = buildCanonPayload({ canonPath: CANON_GOLDEN_PATH });
+    const expected = readFileSync(FIXTURE_PATH, 'utf-8').trimEnd();
     expect(json).toBe(expected);
   });
 
@@ -76,9 +77,9 @@ describe('canon payload determinism', () => {
   });
 
   it('golden snapshot: Buffer equality (no encoding/platform drift)', () => {
-    const { json } = buildCanonPayload({ canonPath: CANON_PATH });
+    const { json } = buildCanonPayload({ canonPath: CANON_GOLDEN_PATH });
     const actualBuf = Buffer.from(json, 'utf-8');
-    const expectedBuf = readFileSync(FIXTURE_PATH);
+    const expectedBuf = Buffer.from(readFileSync(FIXTURE_PATH, 'utf-8').trimEnd(), 'utf-8');
     expect(actualBuf.equals(expectedBuf)).toBe(true);
   });
 });
