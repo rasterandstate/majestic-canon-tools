@@ -27,6 +27,14 @@ describe('manifest integrity', () => {
     expect(result.manifest.payload.files[0].bytes).toBe(canonBytes.byteLength);
   });
 
+  it('payload.files is sorted lexicographically by path', () => {
+    const outDir = join(ROOT, 'out-manifest-test');
+    const result = build({ canonPath: CANON_PATH, outDir });
+    const paths = result.manifest.payload.files.map((f) => f.path);
+    const sorted = [...paths].sort((a, b) => a.localeCompare(b));
+    expect(paths).toEqual(sorted);
+  });
+
   it('manifest has required fields per PACK_FORMAT', () => {
     const outDir = join(ROOT, 'out-manifest-test');
     const result = build({ canonPath: CANON_PATH, outDir });
