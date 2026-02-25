@@ -1,0 +1,25 @@
+{
+  "name": "majestic-canon-tools",
+  "version": "0.1.0",
+  "description": "Build and packaging system for the Majestic Canonical Dataset",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "canon-build": "./scripts/build.ts"
+  },
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "validate": "tsx scripts/validate.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "majestic-canon": "file:../majestic-canon"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}
