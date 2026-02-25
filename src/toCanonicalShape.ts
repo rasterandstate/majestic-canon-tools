@@ -4,6 +4,8 @@
  * Empty strings are entropy. Prefer absence over empty values.
  * _sourceFile is repo artifact — never store in edition.
  */
+import { normalizeTag, normalizeUpc } from './normalize.js';
+
 type UnknownRecord = Record<string, unknown>;
 
 function cleanExternalRef(ref: unknown): UnknownRecord | null {
@@ -65,12 +67,12 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
     });
   }
 
-  const upc = e.upc != null ? String(e.upc).trim() : '';
+  const upc = normalizeUpc(e.upc);
   if (upc) out.upc = upc;
 
   if (Array.isArray(e.edition_tags) && e.edition_tags.length > 0) {
     const tags = e.edition_tags
-      .map((t: unknown) => String(t).trim())
+      .map((t) => normalizeTag(t))
       .filter(Boolean)
       .sort();
     if (tags.length > 0) out.edition_tags = tags;

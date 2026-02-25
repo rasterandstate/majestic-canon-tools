@@ -110,4 +110,42 @@ describe('migrate edition.region to disc.region', () => {
     expect(hash1).toBe(hash2);
     expect(hash1).toMatch(/^edition:v3:/);
   });
+
+  it('UPC normalization produces same identity for equivalent inputs', () => {
+    const mappings = { a: 'A' };
+    const a = {
+      movie: { tmdb_movie_id: 1 },
+      release_year: 2020,
+      publisher: 'test',
+      packaging: { type: 'keepcase' },
+      discs: [{ format: 'BLURAY', disc_count: 1 }],
+      upc: '0 12345 67890 5',
+    };
+    const b = {
+      ...a,
+      upc: '012345678905',
+    };
+    const hashA = computeEditionIdentityHash(toCanonicalShape(a), mappings);
+    const hashB = computeEditionIdentityHash(toCanonicalShape(b), mappings);
+    expect(hashA).toBe(hashB);
+  });
+
+  it('tag normalization produces same identity for equivalent inputs', () => {
+    const mappings = {};
+    const a = {
+      movie: { tmdb_movie_id: 1 },
+      release_year: 2020,
+      publisher: 'test',
+      packaging: { type: 'keepcase' },
+      discs: [{ format: 'BLURAY', disc_count: 1 }],
+      edition_tags: ['Director Cut', '4K'],
+    };
+    const b = {
+      ...a,
+      edition_tags: ['director_cut', '4k'],
+    };
+    const hashA = computeEditionIdentityHash(toCanonicalShape(a), mappings);
+    const hashB = computeEditionIdentityHash(toCanonicalShape(b), mappings);
+    expect(hashA).toBe(hashB);
+  });
 });

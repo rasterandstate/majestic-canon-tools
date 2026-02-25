@@ -4,10 +4,13 @@
  *
  * v2: Region moved from edition to disc. Edition-level region removed.
  * v3: UPC participates in identity when present. Collector-correct SKU distinction.
- * Single source of truth for edition identity. Backstage and other consumers must use this.
+ *
+ * NOTE: computeEditionIdentityHash (unversioned) produces v3. computeEditionIdentityHashV1/V2
+ * are legacy helpers for redirect map generation only — do not use for current identity.
  */
 import { createHash } from 'crypto';
 import { canonicalStringify } from './canonicalJson.js';
+import { normalizeTag, normalizeUpc } from './normalize.js';
 
 export type RegionMappings = Record<string, string>;
 
@@ -34,17 +37,19 @@ function extractIdentityFields(
     return base;
   });
 
+  const tags = Array.isArray(edition.edition_tags)
+    ? edition.edition_tags.map((t) => normalizeTag(t)).filter(Boolean).sort()
+    : [];
+  const upc = normalizeUpc(edition.upc);
+
   const out: Record<string, unknown> = {
     discs: identityDiscs,
-    edition_tags: Array.isArray(edition.edition_tags)
-      ? [...(edition.edition_tags as unknown[])].sort()
-      : [],
+    edition_tags: tags,
     movie: movie ? { tmdb_movie_id: movie.tmdb_movie_id } : undefined,
     packaging: packaging ? { type: (packaging.type ?? 'other').toString().toLowerCase() } : undefined,
     publisher: String(edition.publisher ?? '').trim(),
     release_year: edition.release_year,
   };
-  const upc = String(edition.upc ?? '').trim();
   if (upc) out.upc = upc;
   return out;
 }
@@ -91,11 +96,12 @@ function extractIdentityFieldsV2(
     return base;
   });
 
+  const tags = Array.isArray(edition.edition_tags)
+    ? edition.edition_tags.map((t) => normalizeTag(t)).filter(Boolean).sort()
+    : [];
   return {
     discs: identityDiscs,
-    edition_tags: Array.isArray(edition.edition_tags)
-      ? [...(edition.edition_tags as unknown[])].sort()
-      : [],
+    edition_tags: tags,
     movie: movie ? { tmdb_movie_id: movie.tmdb_movie_id } : undefined,
     packaging: packaging ? { type: (packaging.type ?? 'other').toString().toLowerCase() } : undefined,
     publisher: String(edition.publisher ?? '').trim(),
@@ -103,6 +109,7 @@ function extractIdentityFieldsV2(
   };
 }
 
+/** Legacy: produces edition:v2:xxx for redirect map generation. Do not use for current identity. */
 export function computeEditionIdentityHashV2(
   edition: unknown,
   regionMappings: RegionMappings = {}
@@ -150,10 +157,7 @@ function extractIdentityFieldsV1(
   };
 }
 
-/**
- * Compute v1 edition identity hash. Used only for redirect map generation when migrating.
- * @returns Identity string: edition:v1:<sha256hex>
- */
+/** Legacy: produces edition:v1:xxx for redirect map generation. Do not use for current identity. */
 export function computeEditionIdentityHashV1(
   edition: unknown,
   regionMappings: RegionMappings = {}
