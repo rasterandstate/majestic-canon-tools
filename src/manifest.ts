@@ -6,6 +6,7 @@ import { spawnSync } from 'child_process';
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { canonicalStringify } from './canonicalJson.js';
+import { verifyManifestSignature } from './sign.js';
 
 export interface ManifestPayloadFile {
   path: string;
@@ -90,14 +91,36 @@ export interface VerifyResult {
 /**
  * Verify payload files match manifest. Same semantics canon-updater will use.
  * packRoot: directory containing manifest.json (e.g. out/)
+ * publicKeyPem: optional; when provided, also verifies signature/manifest.sig
  */
-export function verifyManifest(packRoot: string): VerifyResult {
+export function verifyManifest(packRoot: string, publicKeyPem?: string): VerifyResult {
   const manifestPath = join(packRoot, 'manifest.json');
   if (!existsSync(manifestPath)) {
     return { ok: false, errors: [`manifest.json not found at ${manifestPath}`] };
   }
-  const manifest: PackManifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+  const manifestBytes = readFileSync(manifestPath);
   const errors: string[] = [];
+
+  // Verify signature over raw bytes before parsing (tampered manifest may be invalid JSON)
+  if (publicKeyPem) {
+    const sigPath = join(packRoot, 'signature', 'manifest.sig');
+    if (!existsSync(sigPath)) {
+      errors.push('signature/manifest.sig not found');
+    } else {
+      const sigBytes = readFileSync(sigPath);
+      if (!verifyManifestSignature(manifestBytes, sigBytes, publicKeyPem)) {
+        errors.push('signature verification failed');
+      }
+    }
+    if (errors.length > 0) return { ok: false, errors };
+  }
+
+  let manifest: PackManifest;
+  try {
+    manifest = JSON.parse(manifestBytes.toString('utf-8'));
+  } catch {
+    return { ok: false, errors: ['manifest.json is not valid JSON'] };
+  }
 
   for (const file of manifest.payload.files) {
     const filePath = join(packRoot, file.path);

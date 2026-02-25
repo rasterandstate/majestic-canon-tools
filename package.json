@@ -9,7 +9,9 @@
   },
   "scripts": {
     "build": "tsx scripts/build.ts",
+    "sign": "tsx scripts/sign.ts",
     "verify": "tsx scripts/verify.ts",
+    "generate-test-keys": "tsx scripts/generate-test-keys.ts",
     "validate": "tsx scripts/validate.ts",
     "test": "vitest run",
     "test:watch": "vitest"
