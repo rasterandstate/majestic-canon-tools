@@ -11,6 +11,7 @@ build/
 *.tsbuildinfo
 out/
 out-test/
+out-manifest-test/
 packs/
 
 # Environment
