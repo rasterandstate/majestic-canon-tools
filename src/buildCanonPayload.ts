@@ -1,6 +1,12 @@
 /**
  * Build deterministic canon.json payload.
  * Exactly the shape updater would store. No compression, no signing. Hash stability validation.
+ *
+ * INVARIANTS:
+ * - canon.json contains NO timestamps, builtAt, or build metadata.
+ * - Arrays are explicitly sorted: publishers by publisher_id, regions.canonical alphabetically,
+ *   editions by canonical string. Never rely on filesystem or object iteration order.
+ * - Output is UTF-8, no trailing newline, platform-independent.
  */
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
@@ -25,32 +31,44 @@ export function buildCanonPayload(options: BuildPayloadOptions = {}): { payload:
   const canonPath = options.canonPath ?? getCanonPath();
   const schema = loadCanonSchema(canonPath);
 
-  // Load publishers
+  // Load publishers — sort by publisher_id for deterministic array order
   const publishersPath = join(canonPath, 'schema', 'publishers.json');
-  const publishers: unknown[] = existsSync(publishersPath)
+  const publishersRaw: unknown[] = existsSync(publishersPath)
     ? JSON.parse(readFileSync(publishersPath, 'utf-8'))
     : [];
+  const publishers = [...publishersRaw].sort((a, b) => {
+    const idA = (a as Record<string, unknown>)?.publisher_id ?? '';
+    const idB = (b as Record<string, unknown>)?.publisher_id ?? '';
+    return String(idA).localeCompare(String(idB));
+  });
 
-  // Load regions
+  // Load regions — sort canonical list for deterministic order
   const regionsPath = join(canonPath, 'schema', 'regions.json');
-  const regions: { canonical: string[]; mappings: Record<string, string> } = existsSync(regionsPath)
+  const regionsRaw: { canonical?: string[]; mappings?: Record<string, string> } = existsSync(regionsPath)
     ? JSON.parse(readFileSync(regionsPath, 'utf-8'))
-    : { canonical: [], mappings: {} };
+    : {};
+  const regions = {
+    canonical: [...(regionsRaw.canonical ?? [])].sort(),
+    mappings: regionsRaw.mappings ?? {},
+  };
 
-  // Load editions (from editions/*.json or editions/index.json)
+  // Load editions — sort by canonical string for deterministic order
   const editionsDir = join(canonPath, 'editions');
-  const editions: unknown[] = [];
+  const editionsRaw: unknown[] = [];
   if (existsSync(editionsDir)) {
     const files = readdirSync(editionsDir).filter((f) => f.endsWith('.json')).sort();
     for (const file of files) {
       const data = JSON.parse(readFileSync(join(editionsDir, file), 'utf-8'));
       if (Array.isArray(data)) {
-        editions.push(...data);
+        editionsRaw.push(...data);
       } else {
-        editions.push(data);
+        editionsRaw.push(data);
       }
     }
   }
+  const editions = [...editionsRaw].sort((a, b) =>
+    canonicalStringify(a).localeCompare(canonicalStringify(b))
+  );
 
   const payload: CanonPayload = {
     schema_version: String(schema.version),

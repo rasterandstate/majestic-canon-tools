@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { buildCanonPayload, hashCanonPayload } from '../src/buildCanonPayload.js';
+import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { buildCanonPayload, hashCanonPayload } from '../src/buildCanonPayload.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const CANON_PATH = join(ROOT, '..', 'majestic-canon');
+const FIXTURE_PATH = join(ROOT, 'tests', 'fixtures', 'expectedCanon.json');
 
 describe('canon payload determinism', () => {
   it('produces identical JSON across multiple builds', () => {
@@ -32,5 +34,18 @@ describe('canon payload determinism', () => {
     expect(Array.isArray(payload.editions)).toBe(true);
     expect(payload.regions).toHaveProperty('canonical');
     expect(payload.regions).toHaveProperty('mappings');
+  });
+
+  it('golden snapshot: payload bytes match expectedCanon.json exactly', () => {
+    const { json } = buildCanonPayload({ canonPath: CANON_PATH });
+    const expected = readFileSync(FIXTURE_PATH, 'utf-8');
+    expect(json).toBe(expected);
+  });
+
+  it('golden snapshot: Buffer equality (no encoding/platform drift)', () => {
+    const { json } = buildCanonPayload({ canonPath: CANON_PATH });
+    const actualBuf = Buffer.from(json, 'utf-8');
+    const expectedBuf = readFileSync(FIXTURE_PATH);
+    expect(actualBuf.equals(expectedBuf)).toBe(true);
   });
 });
