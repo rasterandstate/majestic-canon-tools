@@ -83,6 +83,18 @@ describe('manifest integrity', () => {
     expect(result.errors.some((e) => e.includes('hash mismatch'))).toBe(true);
   });
 
+  it('verifyManifest detects single-byte tampering', () => {
+    const outDir = join(ROOT, 'out-manifest-test');
+    build({ canonPath: CANON_PATH, outDir });
+    const canonPath = join(outDir, 'payload', 'canon.json');
+    const buf = Buffer.from(readFileSync(canonPath));
+    buf[0] ^= 0x01; // flip one bit
+    writeFileSync(canonPath, buf);
+    const result = verifyManifest(outDir);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes('hash mismatch'))).toBe(true);
+  });
+
   it('rebuild produces same payload hash and canon_version (same commit)', () => {
     const outDir = join(ROOT, 'out-manifest-test');
     const r1 = build({ canonPath: CANON_PATH, outDir });
