@@ -5,6 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { computeEditionIdentityHash } from '../src/editionIdentity.js';
+import { getCanonPath, loadEditionTags, validateEditionTags } from '../src/loadCanon.js';
 
 const baseEdition = {
   movie: { tmdb_movie_id: 1 },
@@ -79,6 +80,12 @@ describe('identity mutation', () => {
     it('UPC formatting changes (spaces/hyphens)', () => {
       expectSameHash((e) => ({ ...e, upc: '0 12345 67890 5' }));
       expectSameHash((e) => ({ ...e, upc: '0123-45678-905' }));
+    });
+
+    it('UPC with non-digit prefix/suffix normalizes to digits-only (e.g. "UPC: 012345678905")', () => {
+      // normalizeUpc strips all non-digits; behavior is locked by this test
+      expectSameHash((e) => ({ ...e, upc: 'UPC: 012345678905' }));
+      expectSameHash((e) => ({ ...e, upc: '012345678905\n' }));
     });
 
     it('tag alias normalizes to canonical tag (e.g. "Director Cut")', () => {
@@ -183,6 +190,22 @@ describe('identity mutation', () => {
         ...e,
         movie: { tmdb_movie_id: 2 },
       }));
+    });
+  });
+
+  describe('tag registry validation (API boundary contract)', () => {
+    it('unknown tag returns 400-style error with precise message', () => {
+      const canonPath = getCanonPath();
+      const registry = loadEditionTags(canonPath);
+      const edition = {
+        ...baseEdition,
+        edition_tags: ['unknown_tag'],
+      };
+      const err = validateEditionTags(edition, registry);
+      expect(err).not.toBeNull();
+      expect(err).toContain('Invalid edition_tag');
+      expect(err).toContain('unknown_tag');
+      expect(err).toContain('must be from canon registry');
     });
   });
 

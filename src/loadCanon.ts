@@ -41,3 +41,35 @@ export function loadRegions(canonPath: string): CanonRegions {
     mappings: raw.mappings ?? {},
   };
 }
+
+export interface CanonEditionTag {
+  tag_id: string;
+  aliases?: string[];
+}
+
+export function loadEditionTags(canonPath: string): CanonEditionTag[] {
+  const tagsPath = join(canonPath, 'schema', 'edition_tags.json');
+  if (!existsSync(tagsPath)) return [];
+  const raw = JSON.parse(readFileSync(tagsPath, 'utf-8'));
+  return Array.isArray(raw) ? raw : [raw];
+}
+
+/**
+ * Validate edition_tags against registry. Returns error message or null if valid.
+ * Used by Backstage API and tests.
+ */
+export function validateEditionTags(
+  edition: Record<string, unknown>,
+  registry: CanonEditionTag[]
+): string | null {
+  const tags = Array.isArray(edition.edition_tags) ? edition.edition_tags : [];
+  if (tags.length === 0) return null;
+  const validIds = new Set(registry.map((t) => t.tag_id));
+  for (const tag of tags) {
+    const t = String(tag).trim();
+    if (!validIds.has(t)) {
+      return `Invalid edition_tag "${t}": must be from canon registry (schema/edition_tags.json)`;
+    }
+  }
+  return null;
+}
