@@ -15,16 +15,24 @@ describe('canon-tools build', () => {
     expect(schema.identityContract.editionHashVersion).toBe(1);
   });
 
-  it('build produces version.json', () => {
+  it('build produces version.json and canon.json', () => {
     const outDir = join(ROOT, 'out-test');
     const manifest = build({ canonPath: CANON_PATH, outDir });
     expect(manifest.version).toBe(1);
     expect(manifest.schemaVersion).toBe(1);
     expect(manifest.builtAt).toBeDefined();
+    expect(manifest.fullPackHash).toBeDefined();
 
     const versionPath = join(outDir, 'version.json');
     expect(existsSync(versionPath)).toBe(true);
     const written = JSON.parse(readFileSync(versionPath, 'utf-8'));
     expect(written.version).toBe(manifest.version);
+
+    const canonPath = join(outDir, 'canon.json');
+    expect(existsSync(canonPath)).toBe(true);
+    const canonJson = readFileSync(canonPath, 'utf-8');
+    expect(canonJson).toContain('"publishers"');
+    expect(canonJson).toContain('"regions"');
+    expect(canonJson).toContain('"editions"');
   });
 });
