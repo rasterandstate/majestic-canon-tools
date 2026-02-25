@@ -4,6 +4,11 @@
   "description": "Build and packaging system for the Majestic Canonical Dataset",
   "type": "module",
   "private": true,
+  "exports": {
+    "./verify": "./src/verify.ts",
+    "./build": "./src/build.ts",
+    "./sign": "./src/sign.ts"
+  },
   "bin": {
     "canon-build": "./scripts/build.ts"
   },
