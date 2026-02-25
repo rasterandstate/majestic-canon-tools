@@ -1,1 +1,1 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","version":1,"identityContract":{"editionHashVersion":1,"editionHashAlgorithm":"sha256_edition_identity_v1"}}
+{"$schema":"https://json-schema.org/draft/2020-12/schema","version":1,"identityContract":{"editionHashVersion":2,"editionHashAlgorithm":"sha256_edition_identity_v2"}}

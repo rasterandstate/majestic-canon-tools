@@ -38,7 +38,6 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
   }
 
   if (e.release_year != null) out.release_year = e.release_year;
-  if (e.region != null && String(e.region).trim()) out.region = String(e.region).trim();
   if (e.publisher != null && String(e.publisher).trim()) out.publisher = String(e.publisher).trim();
 
   // packaging: type only. notes only if non-empty.
