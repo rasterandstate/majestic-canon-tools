@@ -14,8 +14,8 @@ import { createHash } from 'crypto';
 import { canonicalStringify } from './canonicalJson.js';
 import { loadCanonSchema, getCanonPath } from './loadCanon.js';
 
-/** Sort external_refs by source then id for deterministic payload (CANON_IDENTITY_SPEC). */
-function normalizeEdition(edition: unknown): unknown {
+/** Sort external_refs by source then id for deterministic payload (CANON_IDENTITY_SPEC). Exported for tests. */
+export function normalizeEdition(edition: unknown): unknown {
   if (edition == null || typeof edition !== 'object') return edition;
   const obj = { ...(edition as Record<string, unknown>) };
   const refs = obj.external_refs;

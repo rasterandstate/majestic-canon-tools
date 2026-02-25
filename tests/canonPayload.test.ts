@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { buildCanonPayload, hashCanonPayload } from '../src/buildCanonPayload.js';
+import { buildCanonPayload, hashCanonPayload, normalizeEdition } from '../src/buildCanonPayload.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const CANON_PATH = join(ROOT, '..', 'majestic-canon');
@@ -40,6 +40,39 @@ describe('canon payload determinism', () => {
     const { json } = buildCanonPayload({ canonPath: CANON_PATH });
     const expected = readFileSync(FIXTURE_PATH, 'utf-8');
     expect(json).toBe(expected);
+  });
+
+  it('normalizeEdition sorts external_refs by source then id', () => {
+    const e1 = {
+      movie: { tmdb_movie_id: 1 },
+      release_year: 2024,
+      region: 'A',
+      publisher: 'criterion',
+      packaging: { type: 'steelbook' },
+      discs: [{ format: 'UHD', disc_count: 1 }],
+      external_refs: [
+        { source: 'blu-ray.com', id: '390212', url: 'https://...' },
+        { source: 'imdb', id: 'tt123', url: 'https://...' },
+      ],
+    };
+    const normalized = normalizeEdition(e1) as { external_refs: Array<{ source: string; id: string }> };
+    const sortedCopy = [
+      { source: 'blu-ray.com', id: '390212', url: 'https://...' },
+      { source: 'imdb', id: 'tt123', url: 'https://...' },
+    ];
+    expect(normalized.external_refs).toEqual(sortedCopy);
+  });
+
+  it('normalizeEdition sorts external_refs by id when source matches', () => {
+    const e = {
+      external_refs: [
+        { source: 'blu-ray.com', id: '390238', url: 'https://...' },
+        { source: 'blu-ray.com', id: '390212', url: 'https://...' },
+      ],
+    };
+    const normalized = normalizeEdition(e) as { external_refs: Array<{ source: string; id: string }> };
+    expect(normalized.external_refs[0].id).toBe('390212');
+    expect(normalized.external_refs[1].id).toBe('390238');
   });
 
   it('golden snapshot: Buffer equality (no encoding/platform drift)', () => {
