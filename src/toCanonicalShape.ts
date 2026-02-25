@@ -56,10 +56,13 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
   if (Array.isArray(e.discs) && e.discs.length > 0) {
     out.discs = e.discs.map((d: unknown) => {
       const disc = d as UnknownRecord;
-      return {
+      const base: UnknownRecord = {
         format: (disc.format ?? 'OTHER').toString().toUpperCase(),
         disc_count: disc.disc_count ?? 1,
       };
+      const region = disc.region != null ? String(disc.region).trim() : '';
+      if (region) base.region = region;
+      return base;
     });
   }
 

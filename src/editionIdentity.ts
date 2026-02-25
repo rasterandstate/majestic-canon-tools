@@ -23,10 +23,16 @@ function extractIdentityFields(
 
   const identityDiscs = discs.map((d: unknown) => {
     const disc = d as Record<string, unknown>;
-    return {
+    const base = {
       disc_count: disc.disc_count ?? 1,
       format: (disc.format ?? 'OTHER').toString().toUpperCase(),
     };
+    const rawDiscRegion = String(disc.region ?? '').trim().toLowerCase();
+    if (rawDiscRegion) {
+      const discRegion = regionMappings[rawDiscRegion] ?? rawDiscRegion.toUpperCase();
+      return { ...base, region: discRegion.toUpperCase() || 'FREE' };
+    }
+    return base;
   });
 
   return {
