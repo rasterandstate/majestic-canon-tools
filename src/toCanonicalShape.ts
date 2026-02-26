@@ -88,6 +88,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
         const generated_at = di.generated_at != null ? String(di.generated_at).trim() : '';
         const fingerprinted_at = di.fingerprinted_at != null ? String(di.fingerprinted_at).trim() : generated_at;
         const last_verified_at = di.last_verified_at != null ? String(di.last_verified_at).trim() : '';
+        const verification_count = typeof di.verification_count === 'number' ? di.verification_count : undefined;
         const type = di.type != null ? String(di.type).trim() : '';
         if (structural_hash && cas_hash && hash_algorithm && generated_at) {
           base.disc_identity = {
@@ -99,6 +100,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
             generated_at,
             ...(fingerprinted_at && { fingerprinted_at }),
             ...(last_verified_at && { last_verified_at }),
+            ...(verification_count != null && verification_count > 0 && { verification_count }),
           };
         }
       }
