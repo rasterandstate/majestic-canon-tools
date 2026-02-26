@@ -130,6 +130,21 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
           .filter((x): x is NonNullable<typeof x> => x != null);
         if (entries.length > 0) base.fingerprint_history = entries;
       }
+      const regionHistory = disc.region_history as unknown[] | undefined;
+      if (Array.isArray(regionHistory) && regionHistory.length > 0) {
+        const entries = regionHistory
+          .filter((h): h is UnknownRecord => h != null && typeof h === 'object')
+          .map((h) => {
+            const prev = h.previous != null ? String(h.previous).trim() : '';
+            const corrected = h.corrected_to != null ? String(h.corrected_to).trim() : '';
+            const at = h.corrected_at != null ? String(h.corrected_at).trim() : '';
+            const reason = h.reason === 'fingerprint' ? h.reason : 'fingerprint';
+            if (!prev || !corrected || !at) return null;
+            return { previous: prev, corrected_to: corrected, corrected_at: at, reason };
+          })
+          .filter((x): x is NonNullable<typeof x> => x != null);
+        if (entries.length > 0) base.region_history = entries;
+      }
       return base;
     });
   }
