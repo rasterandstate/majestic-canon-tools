@@ -87,6 +87,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
         const version = typeof di.version === 'number' ? di.version : 1;
         const generated_at = di.generated_at != null ? String(di.generated_at).trim() : '';
         const fingerprinted_at = di.fingerprinted_at != null ? String(di.fingerprinted_at).trim() : generated_at;
+        const last_verified_at = di.last_verified_at != null ? String(di.last_verified_at).trim() : '';
         const type = di.type != null ? String(di.type).trim() : '';
         if (structural_hash && cas_hash && hash_algorithm && generated_at) {
           base.disc_identity = {
@@ -97,6 +98,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
             version,
             generated_at,
             ...(fingerprinted_at && { fingerprinted_at }),
+            ...(last_verified_at && { last_verified_at }),
           };
         }
       }
