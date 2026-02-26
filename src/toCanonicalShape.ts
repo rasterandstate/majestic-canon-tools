@@ -62,24 +62,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
     if (Object.keys(pOut).length > 0) out.packaging = pOut;
   }
 
-  // disc_identity: optical fingerprint. structural_hash + casie_hash only; identity lives in CASie.
-  const discIdentity = e.disc_identity as UnknownRecord | undefined;
-  if (discIdentity != null && typeof discIdentity === 'object') {
-    const di = discIdentity as Record<string, unknown>;
-    const structural_hash = di.structural_hash != null ? String(di.structural_hash).trim() : '';
-    const casie_hash = di.casie_hash != null ? String(di.casie_hash).trim() : '';
-    const hash_algorithm = di.hash_algorithm != null ? String(di.hash_algorithm).trim() : '';
-    const generated_at = di.generated_at != null ? String(di.generated_at).trim() : '';
-    if (structural_hash && casie_hash && hash_algorithm && generated_at) {
-      out.disc_identity = {
-        structural_hash,
-        casie_hash,
-        hash_algorithm,
-        generated_at,
-      };
-    }
-  }
-
+  // discs: per-disc slot. disc_identity lives at edition.discs[i].disc_identity.
   if (Array.isArray(e.discs) && e.discs.length > 0) {
     out.discs = e.discs.map((d: unknown) => {
       const disc = d as UnknownRecord;
@@ -89,6 +72,26 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       };
       const region = disc.region != null ? String(disc.region).trim() : '';
       if (region) base.region = region;
+
+      const di = disc.disc_identity as UnknownRecord | undefined;
+      if (di != null && typeof di === 'object') {
+        const structural_hash = di.structural_hash != null ? String(di.structural_hash).trim() : '';
+        const cas_hash =
+          (di.cas_hash != null ? String(di.cas_hash).trim() : '') ||
+          (di.casie_hash != null ? String(di.casie_hash).trim() : '');
+        const hash_algorithm = di.hash_algorithm != null ? String(di.hash_algorithm).trim() : 'sha256';
+        const version = typeof di.version === 'number' ? di.version : 1;
+        const generated_at = di.generated_at != null ? String(di.generated_at).trim() : '';
+        if (structural_hash && cas_hash && hash_algorithm && generated_at) {
+          base.disc_identity = {
+            structural_hash,
+            cas_hash,
+            hash_algorithm,
+            version,
+            generated_at,
+          };
+        }
+      }
       return base;
     });
   }

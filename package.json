@@ -12,7 +12,8 @@
     "./buildCanonPayload": "./src/buildCanonPayload.ts",
     "./validate": "./src/validate.ts",
     "./loadCanon": "./src/loadCanon.ts",
-    "./toCanonicalShape": "./src/toCanonicalShape.ts"
+    "./toCanonicalShape": "./src/toCanonicalShape.ts",
+    "./canonicalJson": "./src/canonicalJson.ts"
   },
   "bin": {
     "canon-build": "./scripts/build.ts"
