@@ -43,3 +43,35 @@ describe('toCanonicalShape barcode.gs1', () => {
     expect(out.barcode?.gs1?.gs1_status).toBe('active');
   });
 });
+
+describe('toCanonicalShape movie.studios', () => {
+  it('persists movie.studios when present and non-empty', () => {
+    const edition = {
+      movie: { tmdb_movie_id: 393, studios: ['warner_bros_pictures', 'a24'] },
+      release_year: 2008,
+      publisher: 'lionsgate',
+    };
+    const out = toCanonicalShape(edition) as { movie?: { tmdb_movie_id?: number; studios?: string[] } };
+    expect(out.movie?.studios).toEqual(['a24', 'warner_bros_pictures']);
+  });
+
+  it('omits movie.studios when empty', () => {
+    const edition = {
+      movie: { tmdb_movie_id: 393, studios: [] },
+      release_year: 2008,
+      publisher: 'lionsgate',
+    };
+    const out = toCanonicalShape(edition) as { movie?: { studios?: string[] } };
+    expect(out.movie).not.toHaveProperty('studios');
+  });
+
+  it('omits movie.studios when not provided', () => {
+    const edition = {
+      movie: { tmdb_movie_id: 393 },
+      release_year: 2008,
+      publisher: 'lionsgate',
+    };
+    const out = toCanonicalShape(edition) as { movie?: { studios?: string[] } };
+    expect(out.movie?.studios).toBeUndefined();
+  });
+});

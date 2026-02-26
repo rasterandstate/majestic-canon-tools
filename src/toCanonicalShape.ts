@@ -33,10 +33,18 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
 
   const out: UnknownRecord = {};
 
-  // movie: tmdb_movie_id only. title/year are informational — never store.
+  // movie: tmdb_movie_id, studios (optional). title/year are informational — never store.
   const movie = e.movie as UnknownRecord | undefined;
   if (movie != null && movie.tmdb_movie_id != null) {
-    out.movie = { tmdb_movie_id: movie.tmdb_movie_id };
+    const movieOut: UnknownRecord = { tmdb_movie_id: movie.tmdb_movie_id };
+    const studios = movie.studios;
+    if (Array.isArray(studios) && studios.length > 0) {
+      const valid = studios
+        .map((s) => (s != null ? String(s).trim() : ''))
+        .filter(Boolean);
+      if (valid.length > 0) movieOut.studios = valid.sort();
+    }
+    out.movie = movieOut;
   }
 
   if (e.release_year != null) out.release_year = e.release_year;
