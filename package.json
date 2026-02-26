@@ -28,7 +28,8 @@
     "generate:identity-redirects": "tsx scripts/generate-identity-redirects.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gs1:validate": "tsx scripts/gs1-validate.ts"
+    "gs1:validate": "tsx scripts/gs1-validate.ts",
+    "migrate:gs1-schema": "tsx scripts/migrate-gs1-schema.ts"
   },
   "dependencies": {
     "majestic-canon": "file:../majestic-canon"
