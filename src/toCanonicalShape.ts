@@ -87,8 +87,10 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
         const version = typeof di.version === 'number' ? di.version : 1;
         const generated_at = di.generated_at != null ? String(di.generated_at).trim() : '';
         const fingerprinted_at = di.fingerprinted_at != null ? String(di.fingerprinted_at).trim() : generated_at;
+        const type = di.type != null ? String(di.type).trim() : '';
         if (structural_hash && cas_hash && hash_algorithm && generated_at) {
           base.disc_identity = {
+            ...(type && { type }),
             structural_hash,
             cas_hash,
             hash_algorithm,
@@ -100,19 +102,29 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       }
       const history = disc.fingerprint_history as unknown[] | undefined;
       if (Array.isArray(history) && history.length > 0) {
-        base.fingerprint_history = history
+        const entries = history
           .filter((h): h is UnknownRecord => h != null && typeof h === 'object')
           .map((h) => {
             const sh = h.structural_hash != null ? String(h.structural_hash).trim() : '';
             const ch = (h.cas_hash ?? h.casie_hash) != null ? String(h.cas_hash ?? h.casie_hash).trim() : '';
             const ha = h.hash_algorithm != null ? String(h.hash_algorithm).trim() : 'sha256';
             const v = typeof h.version === 'number' ? h.version : 1;
-            const ga = h.generated_at != null ? String(h.generated_at).trim() : '';
-            if (!sh || !ch || !ga) return null;
-            return { structural_hash: sh, cas_hash: ch, hash_algorithm: ha, version: v, generated_at: ga };
+            const fa = (h.fingerprinted_at ?? h.generated_at) != null ? String(h.fingerprinted_at ?? h.generated_at).trim() : '';
+            const reason = h.reason === 'overwrite' || h.reason === 'algorithm_upgrade' || h.reason === 'manual_correction' ? h.reason : 'overwrite';
+            const t = h.type != null ? String(h.type).trim() : '';
+            if (!sh || !ch || !fa) return null;
+            return {
+              ...(t && { type: t }),
+              version: v,
+              structural_hash: sh,
+              cas_hash: ch,
+              hash_algorithm: ha,
+              fingerprinted_at: fa,
+              reason,
+            };
           })
-          .filter(Boolean);
-        if (base.fingerprint_history.length === 0) delete base.fingerprint_history;
+          .filter((x): x is NonNullable<typeof x> => x != null);
+        if (entries.length > 0) base.fingerprint_history = entries;
       }
       return base;
     });
