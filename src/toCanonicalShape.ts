@@ -98,6 +98,22 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
           };
         }
       }
+      const history = disc.fingerprint_history as unknown[] | undefined;
+      if (Array.isArray(history) && history.length > 0) {
+        base.fingerprint_history = history
+          .filter((h): h is UnknownRecord => h != null && typeof h === 'object')
+          .map((h) => {
+            const sh = h.structural_hash != null ? String(h.structural_hash).trim() : '';
+            const ch = (h.cas_hash ?? h.casie_hash) != null ? String(h.cas_hash ?? h.casie_hash).trim() : '';
+            const ha = h.hash_algorithm != null ? String(h.hash_algorithm).trim() : 'sha256';
+            const v = typeof h.version === 'number' ? h.version : 1;
+            const ga = h.generated_at != null ? String(h.generated_at).trim() : '';
+            if (!sh || !ch || !ga) return null;
+            return { structural_hash: sh, cas_hash: ch, hash_algorithm: ha, version: v, generated_at: ga };
+          })
+          .filter(Boolean);
+        if (base.fingerprint_history.length === 0) delete base.fingerprint_history;
+      }
       return base;
     });
   }
