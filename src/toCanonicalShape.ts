@@ -72,6 +72,10 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       };
       const region = disc.region != null ? String(disc.region).trim() : '';
       if (region) base.region = region;
+      const role = disc.role != null ? String(disc.role).trim() : '';
+      if (role) base.role = role;
+      const discType = disc.disc_type;
+      if (discType === 'dvd' || discType === 'bluray' || discType === 'uhd') base.disc_type = discType;
 
       const di = disc.disc_identity as UnknownRecord | undefined;
       if (di != null && typeof di === 'object') {
