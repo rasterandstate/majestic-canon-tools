@@ -27,7 +27,8 @@
     "migrate:hash-filenames": "tsx scripts/migrate-editions-to-hash-filenames.ts",
     "generate:identity-redirects": "tsx scripts/generate-identity-redirects.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "gs1:validate": "tsx scripts/gs1-validate.ts"
   },
   "dependencies": {
     "majestic-canon": "file:../majestic-canon"

@@ -70,6 +70,21 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
   const upc = normalizeUpc(e.upc);
   if (upc) out.upc = upc;
 
+  // barcode.gs1: minimal verification metadata (prefix, verified, gs1_status only; no company_name/brand_name)
+  const barcode = e.barcode as UnknownRecord | undefined;
+  if (barcode?.gs1 != null && typeof barcode.gs1 === 'object') {
+    const gs1 = barcode.gs1 as UnknownRecord;
+    const prefix = gs1.prefix != null ? String(gs1.prefix).trim() : '';
+    if (prefix) {
+      const gs1Out: UnknownRecord = { prefix, verified: gs1.verified === true };
+      const status = gs1.gs1_status;
+      if (status === 'active' || status === 'inactive') gs1Out.gs1_status = status;
+      const barcodeOut: UnknownRecord = { gs1: gs1Out };
+      if (upc) barcodeOut.upc = upc;
+      out.barcode = barcodeOut;
+    }
+  }
+
   if (Array.isArray(e.edition_tags) && e.edition_tags.length > 0) {
     const tags = e.edition_tags
       .map((t) => normalizeTag(t))
