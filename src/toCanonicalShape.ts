@@ -107,6 +107,12 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
             if (cs === 'feature' || cs === 'bonus' || cs === 'mixed') surfOut.content_scope = cs;
             const notes = s.notes != null ? String(s.notes).trim() : '';
             if (notes) surfOut.notes = notes;
+            const region = s.region != null ? String(s.region).trim() : '';
+            if (region) surfOut.region = region;
+            const sRegionHistory = s.region_history as unknown[] | undefined;
+            if (Array.isArray(sRegionHistory) && sRegionHistory.length > 0) {
+              surfOut.region_history = sRegionHistory;
+            }
             const sDi = s.disc_identity as UnknownRecord | undefined;
             if (sDi != null && typeof sDi === 'object') {
               const structural_hash = sDi.structural_hash != null ? String(sDi.structural_hash).trim() : '';
