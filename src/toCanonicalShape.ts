@@ -95,8 +95,75 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       const discType = disc.disc_type;
       if (discType === 'dvd' || discType === 'bluray' || discType === 'uhd') base.disc_type = discType;
 
+      const surfaces = disc.surfaces as Array<UnknownRecord> | undefined;
+      if (Array.isArray(surfaces) && surfaces.length > 0) {
+        const surfacesOut = surfaces
+          .filter((s) => s != null && typeof s === 'object' && (s.side === 'A' || s.side === 'B'))
+          .map((s) => {
+            const surfOut: UnknownRecord = { side: s.side };
+            const vt = s.video_type;
+            if (vt === '2D' || vt === '3D' || vt === 'both') surfOut.video_type = vt;
+            const cs = s.content_scope;
+            if (cs === 'feature' || cs === 'bonus' || cs === 'mixed') surfOut.content_scope = cs;
+            const notes = s.notes != null ? String(s.notes).trim() : '';
+            if (notes) surfOut.notes = notes;
+            const sDi = s.disc_identity as UnknownRecord | undefined;
+            if (sDi != null && typeof sDi === 'object') {
+              const structural_hash = sDi.structural_hash != null ? String(sDi.structural_hash).trim() : '';
+              const cas_hash =
+                (sDi.cas_hash != null ? String(sDi.cas_hash).trim() : '') ||
+                (sDi.casie_hash != null ? String(sDi.casie_hash).trim() : '');
+              const hash_algorithm = sDi.hash_algorithm != null ? String(sDi.hash_algorithm).trim() : 'sha256';
+              const version = typeof sDi.version === 'number' ? sDi.version : 1;
+              const generated_at = sDi.generated_at != null ? String(sDi.generated_at).trim() : '';
+              const fingerprinted_at = sDi.fingerprinted_at != null ? String(sDi.fingerprinted_at).trim() : generated_at;
+              const last_verified_at = sDi.last_verified_at != null ? String(sDi.last_verified_at).trim() : '';
+              const verification_count = typeof sDi.verification_count === 'number' ? sDi.verification_count : undefined;
+              const type = sDi.type != null ? String(sDi.type).trim() : '';
+              if (structural_hash && cas_hash && hash_algorithm && generated_at) {
+                surfOut.disc_identity = {
+                  ...(type && { type }),
+                  structural_hash,
+                  cas_hash,
+                  hash_algorithm,
+                  version,
+                  generated_at,
+                  ...(fingerprinted_at && { fingerprinted_at }),
+                  ...(last_verified_at && { last_verified_at }),
+                  ...(verification_count != null && verification_count > 0 && { verification_count }),
+                };
+              }
+            }
+            const sHistory = s.fingerprint_history as unknown[] | undefined;
+            if (Array.isArray(sHistory) && sHistory.length > 0) {
+              const entries = sHistory
+                .filter((h): h is UnknownRecord => h != null && typeof h === 'object')
+                .map((h) => {
+                  const sh = h.structural_hash != null ? String(h.structural_hash).trim() : '';
+                  const ch = (h.cas_hash ?? h.casie_hash) != null ? String(h.cas_hash ?? h.casie_hash).trim() : '';
+                  const fa = (h.fingerprinted_at ?? h.generated_at) != null ? String(h.fingerprinted_at ?? h.generated_at).trim() : '';
+                  const reason = h.reason === 'overwrite' || h.reason === 'algorithm_upgrade' || h.reason === 'manual_correction' ? h.reason : 'overwrite';
+                  if (!sh || !ch || !fa) return null;
+                  return {
+                    ...(h.type && { type: String(h.type).trim() }),
+                    version: typeof h.version === 'number' ? h.version : 1,
+                    structural_hash: sh,
+                    cas_hash: ch,
+                    hash_algorithm: h.hash_algorithm != null ? String(h.hash_algorithm).trim() : 'sha256',
+                    fingerprinted_at: fa,
+                    reason,
+                  };
+                })
+                .filter((x): x is NonNullable<typeof x> => x != null);
+              if (entries.length > 0) surfOut.fingerprint_history = entries;
+            }
+            return surfOut;
+          });
+        if (surfacesOut.length > 0) base.surfaces = surfacesOut;
+      }
+
       const di = disc.disc_identity as UnknownRecord | undefined;
-      if (di != null && typeof di === 'object') {
+      if (!base.surfaces && di != null && typeof di === 'object') {
         const structural_hash = di.structural_hash != null ? String(di.structural_hash).trim() : '';
         const cas_hash =
           (di.cas_hash != null ? String(di.cas_hash).trim() : '') ||
@@ -123,7 +190,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
         }
       }
       const history = disc.fingerprint_history as unknown[] | undefined;
-      if (Array.isArray(history) && history.length > 0) {
+      if (!base.surfaces && Array.isArray(history) && history.length > 0) {
         const entries = history
           .filter((h): h is UnknownRecord => h != null && typeof h === 'object')
           .map((h) => {
@@ -171,7 +238,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
   if (upc) out.upc = upc;
 
   // disc_structures: structural_hash → { slot, role }. Deterministic mapping.
-  const discStructures = e.disc_structures as Record<string, { slot?: number; role?: string }> | undefined;
+  const discStructures = e.disc_structures as Record<string, { slot?: number; role?: string; surface?: string }> | undefined;
   if (discStructures != null && typeof discStructures === 'object' && Object.keys(discStructures).length > 0) {
     const structuresOut: UnknownRecord = {};
     const hex64 = /^[a-fA-F0-9]{64}$/;
@@ -181,7 +248,8 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       const roleRaw = (mapping.role ?? 'unknown').toString().trim().toLowerCase();
       const validRoles = ['feature', 'feature_sd_copy', 'bonus', 'soundtrack', 'unknown'];
       const role = validRoles.includes(roleRaw) ? roleRaw : 'unknown';
-      if (slot != null) structuresOut[hash] = { slot, role };
+      const surface = mapping.surface === 'A' || mapping.surface === 'B' ? mapping.surface : undefined;
+      if (slot != null) structuresOut[hash] = surface != null ? { slot, role, surface } : { slot, role };
     }
     if (Object.keys(structuresOut).length > 0) out.disc_structures = structuresOut;
   }
