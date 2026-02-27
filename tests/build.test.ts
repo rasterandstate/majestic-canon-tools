@@ -11,7 +11,7 @@ const CANON_PATH = join(ROOT, '..', 'majestic-canon');
 describe('canon-tools build', () => {
   it('loads canon schema from path', () => {
     const schema = loadCanonSchema(CANON_PATH);
-    expect(schema.version).toBe(1);
+    expect(schema.version).toBe(3);
     expect(schema.identityContract.editionHashVersion).toBe(3);
   });
 
@@ -19,7 +19,7 @@ describe('canon-tools build', () => {
     const outDir = join(ROOT, 'out-test');
     const manifest = build({ canonPath: CANON_PATH, outDir });
     expect(manifest.version).toBe(1);
-    expect(manifest.schemaVersion).toBe(1);
+    expect(manifest.schemaVersion).toBe(3);
     expect(manifest.builtAt).toBeDefined();
     expect(manifest.fullPackHash).toBeDefined();
     expect(manifest.manifest).toBeDefined();

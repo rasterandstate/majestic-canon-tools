@@ -75,3 +75,38 @@ describe('toCanonicalShape movie.studios', () => {
     expect(out.movie?.studios).toBeUndefined();
   });
 });
+
+describe('toCanonicalShape disc.variant', () => {
+  it('persists variant when present', () => {
+    const edition = {
+      movie: { tmdb_movie_id: 1 },
+      release_year: 2024,
+      publisher: 'warner',
+      discs: [
+        {
+          slot: 1,
+          format: 'BLURAY',
+          role: 'feature',
+          disc_count: 1,
+          variant: { video_type: '3D', content_scope: 'mixed', duplicate_of_disc: null, notes: '3D theatrical' },
+        },
+      ],
+    };
+    const out = toCanonicalShape(edition) as { discs?: Array<{ variant?: Record<string, unknown> }> };
+    expect(out.discs?.[0]?.variant).toEqual({
+      video_type: '3D',
+      content_scope: 'mixed',
+      duplicate_of_disc: null,
+      notes: '3D theatrical',
+    });
+  });
+
+  it('omits variant when empty', () => {
+    const edition = {
+      movie: { tmdb_movie_id: 1 },
+      discs: [{ slot: 1, format: 'BLURAY', role: 'feature', disc_count: 1 }],
+    };
+    const out = toCanonicalShape(edition) as { discs?: Array<{ variant?: unknown }> };
+    expect(out.discs?.[0]?.variant).toBeUndefined();
+  });
+});

@@ -78,6 +78,20 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       };
       const region = disc.region != null ? String(disc.region).trim() : '';
       if (region) base.region = region;
+      const variant = disc.variant as Record<string, unknown> | undefined;
+      if (variant != null && typeof variant === 'object' && Object.keys(variant).length > 0) {
+        const vOut: Record<string, unknown> = {};
+        const vt = variant.video_type;
+        if (vt === '2D' || vt === '3D' || vt === 'both') vOut.video_type = vt;
+        const cs = variant.content_scope;
+        if (cs === 'feature' || cs === 'bonus' || cs === 'mixed') vOut.content_scope = cs;
+        const dup = variant.duplicate_of_disc;
+        if (typeof dup === 'number' && dup >= 1) vOut.duplicate_of_disc = dup;
+        else if (dup === null) vOut.duplicate_of_disc = null;
+        const notes = variant.notes != null ? String(variant.notes).trim() : '';
+        if (notes) vOut.notes = notes;
+        if (Object.keys(vOut).length > 0) base.variant = vOut;
+      }
       const discType = disc.disc_type;
       if (discType === 'dvd' || discType === 'bluray' || discType === 'uhd') base.disc_type = discType;
 
