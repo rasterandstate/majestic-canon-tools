@@ -68,7 +68,17 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       const disc = d as UnknownRecord;
       const slot = typeof disc.slot === 'number' && disc.slot >= 1 ? disc.slot : i + 1;
       const roleRaw = (disc.role ?? 'unknown').toString().trim().toLowerCase();
-      const validRoles = ['feature', 'feature_sd_copy', 'bonus', 'soundtrack', 'unknown'];
+      const validRoles = [
+        'feature',
+        'feature_sd_copy',
+        'bonus',
+        'digital_copy',
+        'distribution_media',
+        'soundtrack',
+        'data',
+        'supplemental',
+        'unknown',
+      ];
       const role = validRoles.includes(roleRaw) ? roleRaw : 'unknown';
       const base: UnknownRecord = {
         slot,
@@ -253,7 +263,17 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       if (!hex64.test(hash) || mapping == null || typeof mapping !== 'object') continue;
       const slot = typeof mapping.slot === 'number' && mapping.slot >= 1 ? mapping.slot : undefined;
       const roleRaw = (mapping.role ?? 'unknown').toString().trim().toLowerCase();
-      const validRoles = ['feature', 'feature_sd_copy', 'bonus', 'soundtrack', 'unknown'];
+      const validRoles = [
+        'feature',
+        'feature_sd_copy',
+        'bonus',
+        'digital_copy',
+        'distribution_media',
+        'soundtrack',
+        'data',
+        'supplemental',
+        'unknown',
+      ];
       const role = validRoles.includes(roleRaw) ? roleRaw : 'unknown';
       const surface = mapping.surface === 'A' || mapping.surface === 'B' ? mapping.surface : undefined;
       if (slot != null) structuresOut[hash] = surface != null ? { slot, role, surface } : { slot, role };
