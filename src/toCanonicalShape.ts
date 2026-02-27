@@ -64,16 +64,20 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
 
   // discs: per-disc slot. disc_identity lives at edition.discs[i].disc_identity.
   if (Array.isArray(e.discs) && e.discs.length > 0) {
-    out.discs = e.discs.map((d: unknown) => {
+    out.discs = e.discs.map((d: unknown, i: number) => {
       const disc = d as UnknownRecord;
+      const slot = typeof disc.slot === 'number' && disc.slot >= 1 ? disc.slot : i + 1;
+      const roleRaw = (disc.role ?? 'unknown').toString().trim().toLowerCase();
+      const validRoles = ['feature', 'feature_sd_copy', 'bonus', 'soundtrack', 'unknown'];
+      const role = validRoles.includes(roleRaw) ? roleRaw : 'unknown';
       const base: UnknownRecord = {
+        slot,
         format: (disc.format ?? 'OTHER').toString().toUpperCase(),
+        role,
         disc_count: disc.disc_count ?? 1,
       };
       const region = disc.region != null ? String(disc.region).trim() : '';
       if (region) base.region = region;
-      const role = disc.role != null ? String(disc.role).trim() : '';
-      if (role) base.role = role;
       const discType = disc.disc_type;
       if (discType === 'dvd' || discType === 'bluray' || discType === 'uhd') base.disc_type = discType;
 
@@ -151,6 +155,22 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
 
   const upc = normalizeUpc(e.upc);
   if (upc) out.upc = upc;
+
+  // disc_structures: structural_hash → { slot, role }. Deterministic mapping.
+  const discStructures = e.disc_structures as Record<string, { slot?: number; role?: string }> | undefined;
+  if (discStructures != null && typeof discStructures === 'object' && Object.keys(discStructures).length > 0) {
+    const structuresOut: UnknownRecord = {};
+    const hex64 = /^[a-fA-F0-9]{64}$/;
+    for (const [hash, mapping] of Object.entries(discStructures)) {
+      if (!hex64.test(hash) || mapping == null || typeof mapping !== 'object') continue;
+      const slot = typeof mapping.slot === 'number' && mapping.slot >= 1 ? mapping.slot : undefined;
+      const roleRaw = (mapping.role ?? 'unknown').toString().trim().toLowerCase();
+      const validRoles = ['feature', 'feature_sd_copy', 'bonus', 'soundtrack', 'unknown'];
+      const role = validRoles.includes(roleRaw) ? roleRaw : 'unknown';
+      if (slot != null) structuresOut[hash] = { slot, role };
+    }
+    if (Object.keys(structuresOut).length > 0) out.disc_structures = structuresOut;
+  }
 
   // barcode.gs1: minimal verification metadata (prefix, verified, gs1_status only; no company_name/brand_name)
   const barcode = e.barcode as UnknownRecord | undefined;
