@@ -96,6 +96,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       if (discType === 'dvd' || discType === 'bluray' || discType === 'uhd') base.disc_type = discType;
 
       const surfaces = disc.surfaces as Array<UnknownRecord> | undefined;
+      const discRegion = disc.region != null ? String(disc.region).trim() : '';
       if (Array.isArray(surfaces) && surfaces.length > 0) {
         const surfacesOut = surfaces
           .filter((s) => s != null && typeof s === 'object' && (s.side === 'A' || s.side === 'B'))
@@ -107,7 +108,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
             if (cs === 'feature' || cs === 'bonus' || cs === 'mixed') surfOut.content_scope = cs;
             const notes = s.notes != null ? String(s.notes).trim() : '';
             if (notes) surfOut.notes = notes;
-            const region = s.region != null ? String(s.region).trim() : '';
+            const region = s.region != null ? String(s.region).trim() : discRegion;
             if (region) surfOut.region = region;
             const sRegionHistory = s.region_history as unknown[] | undefined;
             if (Array.isArray(sRegionHistory) && sRegionHistory.length > 0) {
