@@ -3,10 +3,45 @@
  * CANON_IDENTITY_SPEC: title/year are informational only — exclude from canon.
  * Empty strings are entropy. Prefer absence over empty values.
  * _sourceFile is repo artifact — never store in edition.
+ *
+ * Migration: legacy "movie" is transformed to "movies" (1-element array) in output.
  */
 import { normalizeTag, normalizeUpc } from './normalize.js';
 
 type UnknownRecord = Record<string, unknown>;
+
+/** Derive movies array from edition. Accepts legacy "movie" or "movies". */
+function ensureMoviesArray(e: UnknownRecord): Array<{ tmdb_movie_id: number; studios?: string[] }> {
+  const movies = e.movies as Array<{ tmdb_movie_id?: number; studios?: string[] }> | undefined;
+  if (Array.isArray(movies) && movies.length > 0) {
+    return movies
+      .filter((m) => m != null && typeof m.tmdb_movie_id === 'number')
+      .map((m) => {
+        const out: { tmdb_movie_id: number; studios?: string[] } = { tmdb_movie_id: m.tmdb_movie_id! };
+        const studios = m.studios;
+        if (Array.isArray(studios) && studios.length > 0) {
+          const valid = studios
+            .map((s) => (s != null ? String(s).trim() : ''))
+            .filter(Boolean);
+          if (valid.length > 0) out.studios = valid.sort();
+        }
+        return out;
+      });
+  }
+  const movie = e.movie as UnknownRecord | undefined;
+  if (movie != null && typeof movie.tmdb_movie_id === 'number') {
+    const out: { tmdb_movie_id: number; studios?: string[] } = { tmdb_movie_id: movie.tmdb_movie_id };
+    const studios = movie.studios;
+    if (Array.isArray(studios) && studios.length > 0) {
+      const valid = studios
+        .map((s) => (s != null ? String(s).trim() : ''))
+        .filter(Boolean);
+      if (valid.length > 0) out.studios = valid.sort();
+    }
+    return [out];
+  }
+  return [];
+}
 
 function cleanExternalRef(ref: unknown): UnknownRecord | null {
   if (ref == null || typeof ref !== 'object') return null;
@@ -33,18 +68,16 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
 
   const out: UnknownRecord = {};
 
-  // movie: tmdb_movie_id, studios (optional). title/year are informational — never store.
-  const movie = e.movie as UnknownRecord | undefined;
-  if (movie != null && movie.tmdb_movie_id != null) {
-    const movieOut: UnknownRecord = { tmdb_movie_id: movie.tmdb_movie_id };
-    const studios = movie.studios;
-    if (Array.isArray(studios) && studios.length > 0) {
-      const valid = studios
-        .map((s) => (s != null ? String(s).trim() : ''))
-        .filter(Boolean);
-      if (valid.length > 0) movieOut.studios = valid.sort();
-    }
-    out.movie = movieOut;
+  // movies: array of { tmdb_movie_id, studios? }. Sorted by tmdb_movie_id for canonical order.
+  // Legacy "movie" is transformed to 1-element movies array via ensureMoviesArray.
+  const moviesRaw = ensureMoviesArray(e);
+  if (moviesRaw.length > 0) {
+    const sorted = [...moviesRaw].sort((a, b) => a.tmdb_movie_id - b.tmdb_movie_id);
+    out.movies = sorted.map((m) => {
+      const entry: UnknownRecord = { tmdb_movie_id: m.tmdb_movie_id };
+      if (m.studios?.length) entry.studios = m.studios;
+      return entry;
+    });
   }
 
   if (e.release_year != null) out.release_year = e.release_year;
@@ -88,6 +121,8 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       };
       const region = disc.region != null ? String(disc.region).trim() : '';
       if (region) base.region = region;
+      const movieTmdbId = disc.movie_tmdb_id;
+      if (typeof movieTmdbId === 'number' && movieTmdbId > 0) base.movie_tmdb_id = movieTmdbId;
       const variant = disc.variant as Record<string, unknown> | undefined;
       if (variant != null && typeof variant === 'object' && Object.keys(variant).length > 0) {
         const vOut: Record<string, unknown> = {};

@@ -108,7 +108,7 @@ describe('migrate edition.region to disc.region', () => {
     const hash2 = computeEditionIdentityHash(canonical2, mappings);
 
     expect(hash1).toBe(hash2);
-    expect(hash1).toMatch(/^edition:v3:/);
+    expect(hash1).toMatch(/^edition:v4:/);
   });
 
   it('UPC normalization produces same identity for equivalent inputs', () => {

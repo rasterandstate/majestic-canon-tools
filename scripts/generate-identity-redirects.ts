@@ -17,6 +17,7 @@ import {
   computeEditionIdentityHash,
   computeEditionIdentityHashV1,
   computeEditionIdentityHashV2,
+  computeEditionIdentityHashV3,
 } from '../src/editionIdentity.js';
 
 function migrateEdition(edition: Record<string, unknown>): Record<string, unknown> {
@@ -76,7 +77,7 @@ async function run(): Promise<void> {
     }
   }
 
-  // v2->v3: from current disk (UPC added to identity)
+  // v2->v4, v3->v4: from current disk
   for (const file of files) {
     const filePath = join(editionsDir, file);
     let content: string;
@@ -94,13 +95,15 @@ async function run(): Promise<void> {
     }
     for (const item of items) {
       const canonical = toCanonicalShape(item);
+      const v4 = computeEditionIdentityHash(canonical, mappings);
       const v2 = computeEditionIdentityHashV2(canonical, mappings);
-      const v3 = computeEditionIdentityHash(canonical, mappings);
-      if (v2 !== v3) redirects[v2] = v3;
+      const v3 = computeEditionIdentityHashV3(canonical, mappings);
+      if (v2 !== v4) redirects[v2] = v4;
+      if (v3 !== v4) redirects[v3] = v4;
     }
   }
 
-  // v1->v3: from git (edition.region migration)
+  // v1->v4: from git (edition.region migration)
   for (const file of files) {
     const gitPath = `editions/${file}`;
     const content = getFromGit(canonPath, ref, gitPath);
@@ -121,12 +124,12 @@ async function run(): Promise<void> {
       const v1 = computeEditionIdentityHashV1(rec, mappings);
       const migrated = migrateEdition(rec);
       const canonical = toCanonicalShape(migrated);
-      const v3 = computeEditionIdentityHash(canonical, mappings);
-      redirects[v1] = v3;
+      const v4 = computeEditionIdentityHash(canonical, mappings);
+      redirects[v1] = v4;
     }
   }
 
-  // Flatten: resolve chains so all old IDs point to current (v3)
+  // Flatten: resolve chains so all old IDs point to current (v4)
   const flattened: Record<string, string> = {};
   for (const [oldId, newId] of Object.entries(redirects)) {
     let target = newId;

@@ -45,14 +45,14 @@ describe('toCanonicalShape barcode.gs1', () => {
 });
 
 describe('toCanonicalShape movie.studios', () => {
-  it('persists movie.studios when present and non-empty', () => {
+  it('persists movie.studios when present and non-empty (via movies array)', () => {
     const edition = {
       movie: { tmdb_movie_id: 393, studios: ['warner_bros_pictures', 'a24'] },
       release_year: 2008,
       publisher: 'lionsgate',
     };
-    const out = toCanonicalShape(edition) as { movie?: { tmdb_movie_id?: number; studios?: string[] } };
-    expect(out.movie?.studios).toEqual(['a24', 'warner_bros_pictures']);
+    const out = toCanonicalShape(edition) as { movies?: Array<{ tmdb_movie_id?: number; studios?: string[] }> };
+    expect(out.movies?.[0]?.studios).toEqual(['a24', 'warner_bros_pictures']);
   });
 
   it('omits movie.studios when empty', () => {
@@ -61,8 +61,8 @@ describe('toCanonicalShape movie.studios', () => {
       release_year: 2008,
       publisher: 'lionsgate',
     };
-    const out = toCanonicalShape(edition) as { movie?: { studios?: string[] } };
-    expect(out.movie).not.toHaveProperty('studios');
+    const out = toCanonicalShape(edition) as { movies?: Array<{ studios?: string[] }> };
+    expect(out.movies?.[0]).not.toHaveProperty('studios');
   });
 
   it('omits movie.studios when not provided', () => {
@@ -71,8 +71,8 @@ describe('toCanonicalShape movie.studios', () => {
       release_year: 2008,
       publisher: 'lionsgate',
     };
-    const out = toCanonicalShape(edition) as { movie?: { studios?: string[] } };
-    expect(out.movie?.studios).toBeUndefined();
+    const out = toCanonicalShape(edition) as { movies?: Array<{ studios?: string[] }> };
+    expect(out.movies?.[0]?.studios).toBeUndefined();
   });
 });
 

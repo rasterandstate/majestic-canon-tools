@@ -12,7 +12,7 @@ describe('canon-tools build', () => {
   it('loads canon schema from path', () => {
     const schema = loadCanonSchema(CANON_PATH);
     expect(schema.version).toBe(3);
-    expect(schema.identityContract.editionHashVersion).toBe(3);
+    expect(schema.identityContract.editionHashVersion).toBe(4);
   });
 
   it('build produces manifest.json, version.json, payload/canon.json', () => {
