@@ -1,0 +1,62 @@
+# Publish canon pack to R2 CDN
+# Trigger: push to main, or manual workflow_dispatch
+name: Publish to CDN
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout canon-tools
+        uses: actions/checkout@v4
+        with:
+          path: majestic-canon-tools
+
+      - name: Checkout majestic-canon
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/majestic-canon
+          ref: main
+          path: majestic-canon
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: majestic-canon-tools/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: majestic-canon-tools
+
+      - name: Prepare signing key
+        run: |
+          mkdir -p majestic-canon-tools/out
+          echo "${{ secrets.MAJESTIC_SIGNING_PRIVATE_KEY }}" > majestic-canon-tools/out/test-signing.pem
+          echo "${{ secrets.MAJESTIC_SIGNING_PUBLIC_KEY }}" > majestic-canon-tools/out/test-signing.pub
+
+      - name: Build, sign, verify, publish
+        run: pnpm publish:cdn
+        working-directory: majestic-canon-tools
+        env:
+          MAJESTIC_CANON_PATH: ${{ github.workspace }}/majestic-canon
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME || 'majestic-canon-dist' }}
+          R2_CDN_BASE_URL: ${{ vars.R2_CDN_BASE_URL }}
+          MAJESTIC_SIGNING_PUBLIC_KEY: ${{ github.workspace }}/majestic-canon-tools/out/test-signing.pub

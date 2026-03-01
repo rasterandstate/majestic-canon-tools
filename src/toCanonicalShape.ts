@@ -197,7 +197,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
                   const reason = h.reason === 'overwrite' || h.reason === 'algorithm_upgrade' || h.reason === 'manual_correction' ? h.reason : 'overwrite';
                   if (!sh || !ch || !fa) return null;
                   return {
-                    ...(h.type && { type: String(h.type).trim() }),
+                    ...(h.type ? { type: String(h.type).trim() } : {}),
                     version: typeof h.version === 'number' ? h.version : 1,
                     structural_hash: sh,
                     cas_hash: ch,
