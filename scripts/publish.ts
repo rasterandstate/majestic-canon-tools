@@ -1,6 +1,9 @@
 #!/usr/bin/env npx tsx
 /**
  * Build → Sign → Verify → Publish to R2.
+ */
+import 'dotenv/config';
+/**
  * For dev: uses test key. For prod: run sign separately (external signer) then publish.
  *
  * Usage:
