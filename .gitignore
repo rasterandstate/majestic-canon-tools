@@ -13,6 +13,7 @@ out/
 out-test/
 out-manifest-test/
 out-sign-test/
+out-attach-test/
 packs/
 
 # Environment
