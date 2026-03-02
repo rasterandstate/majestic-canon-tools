@@ -1,6 +1,7 @@
 {
   "name": "majestic-canon-tools",
   "version": "0.1.0",
+  "packageManager": "pnpm@10.30.3",
   "description": "Build and packaging system for the Majestic Canonical Dataset",
   "type": "module",
   "private": true,
