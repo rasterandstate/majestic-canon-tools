@@ -10,6 +10,7 @@
     "./build": "./src/build.ts",
     "./sign": "./src/sign.ts",
     "./editionIdentity": "./src/editionIdentity.ts",
+    "./movieIdentity": "./src/movieIdentity.ts",
     "./resolveIdentity": "./src/resolveIdentity.ts",
     "./buildCanonPayload": "./src/buildCanonPayload.ts",
     "./validate": "./src/validate.ts",
