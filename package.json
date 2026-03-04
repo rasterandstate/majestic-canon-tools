@@ -27,6 +27,7 @@
     "verify": "tsx scripts/verify.ts",
     "publish:cdn": "tsx scripts/publish.ts",
     "generate-test-keys": "tsx scripts/generate-test-keys.ts",
+    "generate-production-keys": "tsx scripts/generate-test-keys.ts -- out/production-keys --production",
     "validate": "tsx scripts/validate.ts",
     "migrate:edition-region": "tsx scripts/migrate-edition-region-to-discs.ts",
     "migrate:hash-filenames": "tsx scripts/migrate-editions-to-hash-filenames.ts",
