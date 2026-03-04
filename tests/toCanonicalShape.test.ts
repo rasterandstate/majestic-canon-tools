@@ -173,6 +173,37 @@ describe('toCanonicalShape disc_identity (disc-fingerprinting)', () => {
     expect(out.discs?.[0]?.disc_identity?.cas_hash).toBe('def456');
   });
 
+  it('normalizes 64-char hex hashes to lowercase (CASie hash normalization)', () => {
+    const edition = {
+      movie: { tmdb_movie_id: 1 },
+      discs: [
+        {
+          slot: 1,
+          format: 'BLURAY',
+          role: 'feature',
+          disc_count: 1,
+          disc_identity: {
+            structural_hash: 'FEB45FDFC88B70F36C42563A5B2009EEBF04FA7E852EB6D3E9C0143A26BCBEC8',
+            cas_hash: '63CAB9A36C6743DEF308088569569BF0233DA4E90E4680F09EFC17EDE573C74C',
+            hash_algorithm: 'sha256',
+            version: 1,
+            generated_at: '2026-02-27T21:53:40.691Z',
+            fingerprinted_at: '2026-02-27T21:53:40.691Z',
+          },
+        },
+      ],
+    };
+    const out = toCanonicalShape(edition) as {
+      discs?: Array<{ disc_identity?: { structural_hash: string; cas_hash: string } }>;
+    };
+    expect(out.discs?.[0]?.disc_identity?.structural_hash).toBe(
+      'feb45fdfc88b70f36c42563a5b2009eebf04fa7e852eb6d3e9c0143a26bcbec8'
+    );
+    expect(out.discs?.[0]?.disc_identity?.cas_hash).toBe(
+      '63cab9a36c6743def308088569569bf0233da4e90e4680f09efc17ede573c74c'
+    );
+  });
+
   it('omits disc_identity when required fields missing', () => {
     const edition = {
       movie: { tmdb_movie_id: 1 },
@@ -235,6 +266,30 @@ describe('toCanonicalShape fingerprint_history (disc-fingerprinting)', () => {
       fingerprinted_at: '2026-02-01T00:00:00.000Z',
       reason: 'overwrite',
     });
+  });
+
+  it('normalizes disc_structures keys to lowercase', () => {
+    const hash64 =
+      'FEB45FDFC88B70F36C42563A5B2009EEBF04FA7E852EB6D3E9C0143A26BCBEC8';
+    const edition = {
+      movie: { tmdb_movie_id: 1 },
+      release_year: 2024,
+      publisher: 'warner',
+      discs: [{ slot: 1, format: 'BLURAY', role: 'feature', disc_count: 1 }],
+      disc_structures: {
+        [hash64]: { slot: 1, role: 'feature' },
+      },
+    };
+    const out = toCanonicalShape(edition) as {
+      disc_structures?: Record<string, { slot: number; role: string }>;
+    };
+    expect(out.disc_structures).toBeDefined();
+    const normalizedKey = hash64.toLowerCase();
+    expect(out.disc_structures?.[normalizedKey]).toEqual({
+      slot: 1,
+      role: 'feature',
+    });
+    expect(Object.keys(out.disc_structures ?? {})[0]).toBe(normalizedKey);
   });
 
   it('accepts generated_at as alias for fingerprinted_at in history', () => {

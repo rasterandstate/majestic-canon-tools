@@ -5,10 +5,20 @@
  * _sourceFile is repo artifact — never store in edition.
  *
  * Migration: legacy "movie" is transformed to "movies" (1-element array) in output.
+ *
+ * CASie hash normalization: structural_hash and cas_hash (64-char hex) are normalized
+ * to lowercase for deterministic storage and protocol compatibility (MP-02).
  */
 import { normalizeTag, normalizeUpc } from './normalize.js';
 
 type UnknownRecord = Record<string, unknown>;
+
+/** Normalize 64-char hex hashes to lowercase. Pass-through for non-matching values. */
+function normalizeHash64(value: string): string {
+  const s = value.trim();
+  if (/^[a-fA-F0-9]{64}$/.test(s)) return s.toLowerCase();
+  return s;
+}
 
 /** Derive movies array from edition. Accepts legacy "movie" or "movies". */
 function ensureMoviesArray(e: UnknownRecord): Array<{ tmdb_movie_id: number; studios?: string[] }> {
@@ -161,10 +171,13 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
             }
             const sDi = s.disc_identity as UnknownRecord | undefined;
             if (sDi != null && typeof sDi === 'object') {
-              const structural_hash = sDi.structural_hash != null ? String(sDi.structural_hash).trim() : '';
-              const cas_hash =
+              const structural_hash = normalizeHash64(
+                sDi.structural_hash != null ? String(sDi.structural_hash).trim() : ''
+              );
+              const cas_hash = normalizeHash64(
                 (sDi.cas_hash != null ? String(sDi.cas_hash).trim() : '') ||
-                (sDi.casie_hash != null ? String(sDi.casie_hash).trim() : '');
+                  (sDi.casie_hash != null ? String(sDi.casie_hash).trim() : '')
+              );
               const hash_algorithm = sDi.hash_algorithm != null ? String(sDi.hash_algorithm).trim() : 'sha256';
               const version = typeof sDi.version === 'number' ? sDi.version : 1;
               const generated_at = sDi.generated_at != null ? String(sDi.generated_at).trim() : '';
@@ -191,8 +204,10 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
               const entries = sHistory
                 .filter((h): h is UnknownRecord => h != null && typeof h === 'object')
                 .map((h) => {
-                  const sh = h.structural_hash != null ? String(h.structural_hash).trim() : '';
-                  const ch = (h.cas_hash ?? h.casie_hash) != null ? String(h.cas_hash ?? h.casie_hash).trim() : '';
+                  const sh = normalizeHash64(h.structural_hash != null ? String(h.structural_hash).trim() : '');
+                  const ch = normalizeHash64(
+                    (h.cas_hash ?? h.casie_hash) != null ? String(h.cas_hash ?? h.casie_hash).trim() : ''
+                  );
                   const fa = (h.fingerprinted_at ?? h.generated_at) != null ? String(h.fingerprinted_at ?? h.generated_at).trim() : '';
                   const reason = h.reason === 'overwrite' || h.reason === 'algorithm_upgrade' || h.reason === 'manual_correction' ? h.reason : 'overwrite';
                   if (!sh || !ch || !fa) return null;
@@ -216,10 +231,13 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
 
       const di = disc.disc_identity as UnknownRecord | undefined;
       if (!base.surfaces && di != null && typeof di === 'object') {
-        const structural_hash = di.structural_hash != null ? String(di.structural_hash).trim() : '';
-        const cas_hash =
+        const structural_hash = normalizeHash64(
+          di.structural_hash != null ? String(di.structural_hash).trim() : ''
+        );
+        const cas_hash = normalizeHash64(
           (di.cas_hash != null ? String(di.cas_hash).trim() : '') ||
-          (di.casie_hash != null ? String(di.casie_hash).trim() : '');
+            (di.casie_hash != null ? String(di.casie_hash).trim() : '')
+        );
         const hash_algorithm = di.hash_algorithm != null ? String(di.hash_algorithm).trim() : 'sha256';
         const version = typeof di.version === 'number' ? di.version : 1;
         const generated_at = di.generated_at != null ? String(di.generated_at).trim() : '';
@@ -246,8 +264,10 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
         const entries = history
           .filter((h): h is UnknownRecord => h != null && typeof h === 'object')
           .map((h) => {
-            const sh = h.structural_hash != null ? String(h.structural_hash).trim() : '';
-            const ch = (h.cas_hash ?? h.casie_hash) != null ? String(h.cas_hash ?? h.casie_hash).trim() : '';
+            const sh = normalizeHash64(h.structural_hash != null ? String(h.structural_hash).trim() : '');
+            const ch = normalizeHash64(
+              (h.cas_hash ?? h.casie_hash) != null ? String(h.cas_hash ?? h.casie_hash).trim() : ''
+            );
             const ha = h.hash_algorithm != null ? String(h.hash_algorithm).trim() : 'sha256';
             const v = typeof h.version === 'number' ? h.version : 1;
             const fa = (h.fingerprinted_at ?? h.generated_at) != null ? String(h.fingerprinted_at ?? h.generated_at).trim() : '';
@@ -289,13 +309,14 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
   const upc = normalizeUpc(e.upc);
   if (upc) out.upc = upc;
 
-  // disc_structures: structural_hash → { slot, role }. Deterministic mapping.
+  // disc_structures: structural_hash → { slot, role }. Deterministic mapping. Keys normalized to lowercase.
   const discStructures = e.disc_structures as Record<string, { slot?: number; role?: string; surface?: string }> | undefined;
   if (discStructures != null && typeof discStructures === 'object' && Object.keys(discStructures).length > 0) {
     const structuresOut: UnknownRecord = {};
     const hex64 = /^[a-fA-F0-9]{64}$/;
     for (const [hash, mapping] of Object.entries(discStructures)) {
       if (!hex64.test(hash) || mapping == null || typeof mapping !== 'object') continue;
+      const normHash = hash.toLowerCase();
       const slot = typeof mapping.slot === 'number' && mapping.slot >= 1 ? mapping.slot : undefined;
       const roleRaw = (mapping.role ?? 'unknown').toString().trim().toLowerCase();
       const validRoles = [
@@ -311,7 +332,7 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
       ];
       const role = validRoles.includes(roleRaw) ? roleRaw : 'unknown';
       const surface = mapping.surface === 'A' || mapping.surface === 'B' ? mapping.surface : undefined;
-      if (slot != null) structuresOut[hash] = surface != null ? { slot, role, surface } : { slot, role };
+      if (slot != null) structuresOut[normHash] = surface != null ? { slot, role, surface } : { slot, role };
     }
     if (Object.keys(structuresOut).length > 0) out.disc_structures = structuresOut;
   }
