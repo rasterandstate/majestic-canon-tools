@@ -1,0 +1,57 @@
+# Majestic Canon Tools CI — validate, test.
+# No continue-on-error. No retries. Fails loudly.
+#
+# Required secret: REPO_ACCESS_TOKEN — PAT with repo scope for cross-repo checkout
+# (majestic-canon). GITHUB_TOKEN cannot access other org repos.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: majestic-canon-tools
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/majestic-canon
+          path: majestic-canon
+          ref: main
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: majestic-canon-tools/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: majestic-canon-tools/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: majestic-canon-tools
+
+      - name: Validate
+        run: pnpm run validate
+        working-directory: majestic-canon-tools
+        env:
+          MAJESTIC_CANON_PATH: ${{ github.workspace }}/majestic-canon
+
+      - name: Test
+        run: pnpm test
+        working-directory: majestic-canon-tools
+        env:
+          MAJESTIC_CANON_PATH: ${{ github.workspace }}/majestic-canon

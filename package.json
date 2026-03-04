@@ -6,17 +6,50 @@
   "type": "module",
   "private": true,
   "exports": {
-    "./verify": "./src/verify.ts",
-    "./build": "./src/build.ts",
-    "./sign": "./src/sign.ts",
-    "./editionIdentity": "./src/editionIdentity.ts",
-    "./movieIdentity": "./src/movieIdentity.ts",
-    "./resolveIdentity": "./src/resolveIdentity.ts",
-    "./buildCanonPayload": "./src/buildCanonPayload.ts",
-    "./validate": "./src/validate.ts",
-    "./loadCanon": "./src/loadCanon.ts",
-    "./toCanonicalShape": "./src/toCanonicalShape.ts",
-    "./canonicalJson": "./src/canonicalJson.ts"
+    "./verify": {
+      "types": "./src/verify.ts",
+      "default": "./src/verify.ts"
+    },
+    "./build": {
+      "types": "./src/build.ts",
+      "default": "./src/build.ts"
+    },
+    "./sign": {
+      "types": "./src/sign.ts",
+      "default": "./src/sign.ts"
+    },
+    "./editionIdentity": {
+      "types": "./src/editionIdentity.ts",
+      "default": "./src/editionIdentity.ts"
+    },
+    "./movieIdentity": {
+      "types": "./src/movieIdentity.ts",
+      "default": "./src/movieIdentity.ts"
+    },
+    "./resolveIdentity": {
+      "types": "./src/resolveIdentity.ts",
+      "default": "./src/resolveIdentity.ts"
+    },
+    "./buildCanonPayload": {
+      "types": "./src/buildCanonPayload.ts",
+      "default": "./src/buildCanonPayload.ts"
+    },
+    "./validate": {
+      "types": "./src/validate.ts",
+      "default": "./src/validate.ts"
+    },
+    "./loadCanon": {
+      "types": "./src/loadCanon.ts",
+      "default": "./src/loadCanon.ts"
+    },
+    "./toCanonicalShape": {
+      "types": "./src/toCanonicalShape.ts",
+      "default": "./src/toCanonicalShape.ts"
+    },
+    "./canonicalJson": {
+      "types": "./src/canonicalJson.ts",
+      "default": "./src/canonicalJson.ts"
+    }
   },
   "bin": {
     "canon-build": "./scripts/build.ts"
