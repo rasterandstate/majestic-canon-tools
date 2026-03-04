@@ -2,14 +2,20 @@
  * Ed25519 signing over manifest bytes. Per SIGNING_FLOW.md.
  * Sign exact UTF-8 bytes of manifest.json as written to disk.
  */
-import { sign, verify } from 'crypto';
+import { sign, verify, createPrivateKey } from 'crypto';
 
 /**
  * Sign manifest bytes with Ed25519 private key (PEM).
  * Returns raw signature bytes.
+ * Uses createPrivateKey() for robust PEM decoding across OpenSSL versions (avoids ERR_OSSL_UNSUPPORTED in CI).
  */
 export function signManifestBytes(manifestBytes: Buffer, privateKeyPem: string): Buffer {
-  return sign(null, manifestBytes, privateKeyPem);
+  const key = createPrivateKey({
+    key: privateKeyPem,
+    format: 'pem',
+    type: 'pkcs8',
+  });
+  return sign(null, manifestBytes, key);
 }
 
 /**
