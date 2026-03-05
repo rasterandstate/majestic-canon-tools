@@ -55,6 +55,7 @@ export async function publishToR2(options: PublishOptions): Promise<{ canonVersi
 
   const manifestPath = join(packRoot, 'manifest.json');
   const payloadPath = join(packRoot, 'payload', 'canon.json');
+  const titlesPath = join(packRoot, 'payload', 'movie_titles.json');
   const sigPath = join(packRoot, 'signature', 'manifest.sig');
 
   if (!existsSync(manifestPath) || !existsSync(payloadPath) || !existsSync(sigPath)) {
@@ -95,6 +96,17 @@ export async function publishToR2(options: PublishOptions): Promise<{ canonVersi
       ContentType: 'application/json',
     })
   );
+  if (existsSync(titlesPath)) {
+    const titlesBytes = readFileSync(titlesPath);
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: `${packPrefix}/payload/movie_titles.json`,
+        Body: titlesBytes,
+        ContentType: 'application/json',
+      })
+    );
+  }
   await s3.send(
     new PutObjectCommand({
       Bucket: bucket,

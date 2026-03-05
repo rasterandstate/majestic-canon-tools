@@ -14,14 +14,16 @@ const args = process.argv.slice(2);
 const outIdx = args.indexOf('--out');
 const outDir = outIdx >= 0 && args[outIdx + 1] ? args[outIdx + 1] : undefined;
 
-try {
-  const result = runBuild({
-    canonPath: process.env.MAJESTIC_CANON_PATH ?? getCanonPath(),
-    outDir,
-  });
-  const { manifest, ...summary } = result;
-  console.log('Build complete:', JSON.stringify({ ...summary, canon_version: manifest.canon_version }, null, 2));
-} catch (err) {
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
-}
+(async () => {
+  try {
+    const result = await runBuild({
+      canonPath: process.env.MAJESTIC_CANON_PATH ?? getCanonPath(),
+      outDir,
+    });
+    const { manifest, ...summary } = result;
+    console.log('Build complete:', JSON.stringify({ ...summary, canon_version: manifest.canon_version }, null, 2));
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  }
+})();

@@ -49,21 +49,24 @@ export function getCanonVersion(canonPath: string): string {
 }
 
 /**
- * Build manifest from canon.json bytes. Payload files sorted by path.
+ * Build manifest from canon.json and optional payload files.
  */
 export function buildManifest(
   canonJson: string,
   canonVersion: string,
   schemaVersion: number,
-  identityVersion: string
+  identityVersion: string,
+  payloadFiles?: ManifestPayloadFile[]
 ): PackManifest {
   const canonBuf = Buffer.from(canonJson, 'utf-8');
-  const sha256 = createHash('sha256').update(canonBuf).digest('hex');
-  const bytes = canonBuf.byteLength;
-
-  const files: ManifestPayloadFile[] = [
-    { path: 'payload/canon.json', sha256, bytes },
-  ].sort((a, b) => a.path.localeCompare(b.path));
+  const defaultFiles: ManifestPayloadFile[] = [
+    {
+      path: 'payload/canon.json',
+      sha256: createHash('sha256').update(canonBuf).digest('hex'),
+      bytes: canonBuf.byteLength,
+    },
+  ];
+  const files = (payloadFiles ?? defaultFiles).sort((a, b) => a.path.localeCompare(b.path));
 
   return {
     pack_format_version: '1',

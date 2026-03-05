@@ -51,7 +51,7 @@ async function main(): Promise<void> {
     if (existsSync(sigDir)) {
       rmSync(sigDir, { recursive: true });
     }
-    build({
+    await build({
       canonPath,
       outDir: packRoot,
     });

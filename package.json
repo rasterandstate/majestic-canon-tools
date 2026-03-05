@@ -58,6 +58,7 @@
     "build": "tsx scripts/build.ts",
     "sign": "tsx scripts/sign.ts",
     "verify": "tsx scripts/verify.ts",
+    "enrich": "tsx scripts/enrich.ts",
     "publish:cdn": "tsx scripts/publish.ts",
     "generate-test-keys": "tsx scripts/generate-test-keys.ts",
     "generate-production-keys": "tsx scripts/generate-test-keys.ts -- out/production-keys --production",
