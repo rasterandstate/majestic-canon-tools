@@ -1,5 +1,5 @@
 # Publish canon pack to R2 CDN
-# Trigger: push to main, or manual workflow_dispatch
+# Trigger: push to main (canon-tools), repository_dispatch (canon changes), or manual workflow_dispatch
 name: Publish to CDN
 
 on:
@@ -11,6 +11,8 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
   workflow_dispatch:
+  repository_dispatch:
+    types: [canon-updated]
 
 jobs:
   publish:
@@ -46,8 +48,8 @@ jobs:
       - name: Prepare signing key
         run: |
           mkdir -p majestic-canon-tools/out
-          echo "${{ secrets.MAJESTIC_SIGNING_PRIVATE_KEY }}" > majestic-canon-tools/out/test-signing.pem
-          echo "${{ secrets.MAJESTIC_SIGNING_PUBLIC_KEY }}" > majestic-canon-tools/out/test-signing.pub
+          printf '%s\n' "${{ secrets.MAJESTIC_SIGNING_PRIVATE_KEY }}" > majestic-canon-tools/out/test-signing.pem
+          printf '%s\n' "${{ secrets.MAJESTIC_SIGNING_PUBLIC_KEY }}" > majestic-canon-tools/out/test-signing.pub
 
       - name: Build, sign, verify, publish
         run: pnpm publish:cdn
