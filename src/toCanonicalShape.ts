@@ -309,6 +309,12 @@ export function toCanonicalShape(edition: unknown): UnknownRecord {
   const upc = normalizeUpc(e.upc);
   if (upc) out.upc = upc;
 
+  // edition_identity: content-addressed identity from disc fingerprints (edhash:sha256:...)
+  const editionIdentity = e.edition_identity != null ? String(e.edition_identity).trim() : '';
+  if (editionIdentity && /^edhash:sha256:[a-f0-9]{64}$/.test(editionIdentity.toLowerCase())) {
+    out.edition_identity = editionIdentity.toLowerCase();
+  }
+
   // disc_structures: structural_hash → { slot, role }. Deterministic mapping. Keys normalized to lowercase.
   const discStructures = e.disc_structures as Record<string, { slot?: number; role?: string; surface?: string }> | undefined;
   if (discStructures != null && typeof discStructures === 'object' && Object.keys(discStructures).length > 0) {
