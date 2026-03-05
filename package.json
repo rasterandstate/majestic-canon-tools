@@ -70,6 +70,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "gs1:validate": "tsx scripts/gs1-validate.ts",
+    "canon:ingest": "tsx scripts/ingest.ts",
+    "canon:ingest-disq": "tsx scripts/ingest-disq.ts",
+    "canon:synthesize": "tsx scripts/synthesize.ts",
+    "canon:evidence-stats": "tsx scripts/evidence-stats.ts",
     "migrate:gs1-schema": "tsx scripts/migrate-gs1-schema.ts"
   },
   "dependencies": {
