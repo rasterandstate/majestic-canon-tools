@@ -9,6 +9,7 @@ import { join } from 'path';
 export interface MovieInfo {
   title: string;
   year: number;
+  poster_path?: string | null;
 }
 
 export type MovieTitles = Record<string, MovieInfo>;
@@ -57,9 +58,13 @@ async function fetchTmdbMovie(id: number, apiKey: string): Promise<MovieInfo | n
   const url = `https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`;
   const res = await fetch(url);
   if (!res.ok) return null;
-  const json = (await res.json()) as { title?: string; release_date?: string };
+  const json = (await res.json()) as { title?: string; release_date?: string; poster_path?: string | null };
   const year = json.release_date ? parseInt(json.release_date.slice(0, 4), 10) : 0;
-  return { title: json.title ?? 'Unknown', year };
+  return {
+    title: json.title ?? 'Unknown',
+    year,
+    poster_path: json.poster_path ?? null
+  };
 }
 
 async function delay(ms: number): Promise<void> {
@@ -91,7 +96,9 @@ export async function enrich(options: EnrichOptions): Promise<MovieTitles> {
   const tmdbIds = extractTmdbIds(editions);
 
   let cache = loadCache(cachePath);
-  const missing = tmdbIds.filter((id) => !cache[String(id)]);
+  const missing = tmdbIds.filter(
+    (id) => !cache[String(id)] || cache[String(id)].poster_path == null
+  );
 
   if (missing.length > 0 && apiKey) {
     console.log(`[enrich] Fetching ${missing.length} movie(s) from TMDB...`);
