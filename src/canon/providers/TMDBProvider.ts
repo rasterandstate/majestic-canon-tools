@@ -25,13 +25,10 @@ export class TMDBProvider implements EvidenceProvider {
     }
 
     const tmdbId = identifier.value;
-    const url = `${TMDB_BASE}/movie/${tmdbId}?language=en-US`;
+    const url = `${TMDB_BASE}/movie/${tmdbId}?language=en-US&api_key=${apiKey}`;
 
     const res = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: { Accept: 'application/json' },
     });
 
     if (!res.ok) {
