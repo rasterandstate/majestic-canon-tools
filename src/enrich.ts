@@ -1,7 +1,7 @@
 /**
  * TMDB enrichment: resolve movie IDs to titles.
- * Append-only cache. Never overwrite existing titles.
- * Output: movie_titles.json for the canon pack.
+ * Deterministic, append-only cache. Never overwrite existing entries.
+ * Same canon commit + same movie_titles.json = identical pack.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
@@ -54,16 +54,27 @@ function loadCache(path: string): MovieTitles {
   }
 }
 
+/** Deterministic output: sort by TMDB ID so identical data produces identical JSON. */
+function writeDeterministicTitles(path: string, cache: MovieTitles): void {
+  const sorted = Object.fromEntries(
+    Object.entries(cache).sort(([a], [b]) => Number(a) - Number(b))
+  );
+  writeFileSync(path, JSON.stringify(sorted, null, 2) + '\n', 'utf-8');
+}
+
 async function fetchTmdbMovie(id: number, apiKey: string): Promise<MovieInfo | null> {
-  const url = `https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}`;
+  const url = `https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}&language=en-US`;
   const res = await fetch(url);
   if (!res.ok) return null;
-  const json = (await res.json()) as { title?: string; release_date?: string; poster_path?: string | null };
-  const year = json.release_date ? parseInt(json.release_date.slice(0, 4), 10) : 0;
+  const data = (await res.json()) as { title?: string; release_date?: string; poster_path?: string | null };
+  if (!data.title || !data.release_date) {
+    throw new Error(`Invalid TMDB response for ${id}: missing title or release_date`);
+  }
+  const year = Number(data.release_date.slice(0, 4));
   return {
-    title: json.title ?? 'Unknown',
+    title: data.title,
     year,
-    poster_path: json.poster_path ?? null
+    poster_path: data.poster_path ?? null
   };
 }
 
@@ -80,8 +91,8 @@ export interface EnrichOptions {
 }
 
 /**
- * Enrich canon with TMDB movie titles. Append-only: never overwrites existing cached titles.
- * Writes movie_titles.json to outDir/payload/ and optionally updates cache in canon repo.
+ * Enrich canon with TMDB movie titles.
+ * Append-only: never overwrites existing cached entries. Same canon commit → same pack.
  */
 export async function enrich(options: EnrichOptions): Promise<MovieTitles> {
   const {
@@ -95,10 +106,8 @@ export async function enrich(options: EnrichOptions): Promise<MovieTitles> {
   const editions = loadEditions(canonPath);
   const tmdbIds = extractTmdbIds(editions);
 
-  let cache = loadCache(cachePath);
-  const missing = tmdbIds.filter(
-    (id) => !cache[String(id)] || cache[String(id)].poster_path == null
-  );
+  const cache = loadCache(cachePath);
+  const missing = tmdbIds.filter((id) => !cache[String(id)]);
 
   if (missing.length > 0 && apiKey) {
     console.log(`[enrich] Fetching ${missing.length} movie(s) from TMDB...`);
@@ -107,18 +116,20 @@ export async function enrich(options: EnrichOptions): Promise<MovieTitles> {
       if (info) cache[String(id)] = info;
       await delay(rateLimitMs);
     }
-    // Append-only: write back to canon cache so future builds reuse
-    mkdirSync(canonPath, { recursive: true });
-    writeFileSync(cachePath, JSON.stringify(cache, null, 2), 'utf-8');
-    console.log(`[enrich] Updated ${cachePath}`);
   } else if (missing.length > 0 && !apiKey) {
     console.log(`[enrich] Skipping ${missing.length} uncached movie(s). Set TMDB_API_KEY to fetch.`);
+  }
+
+  mkdirSync(canonPath, { recursive: true });
+  writeDeterministicTitles(cachePath, cache);
+  if (missing.length > 0 && apiKey) {
+    console.log(`[enrich] Updated ${cachePath}`);
   }
 
   const payloadDir = join(outDir, 'payload');
   mkdirSync(payloadDir, { recursive: true });
   const outputPath = join(payloadDir, 'movie_titles.json');
-  writeFileSync(outputPath, JSON.stringify(cache, null, 2), 'utf-8');
+  writeDeterministicTitles(outputPath, cache);
   console.log(`[enrich] Wrote ${outputPath} (${Object.keys(cache).length} movies)`);
 
   return cache;
